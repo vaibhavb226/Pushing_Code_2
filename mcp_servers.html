@@ -1,0 +1,641 @@
+
+<title>MCP Servers — Sysco RFP AIQ</title>
+<style>
+  :root {
+    --bg:        #F5F4F1;
+    --surface:   #FFFFFF;
+    --border:    #DDD9D0;
+    --navy:      #0D1B2A;
+    --navy-mid:  #1E3254;
+    --slate:     #4A5568;
+    --orange:    #E05A2B;
+    --orange-lt: #FDF0EB;
+    --green:     #0F7A55;
+    --green-lt:  #E6F5F0;
+    --blue:      #1A4A8A;
+    --blue-lt:   #EBF1FA;
+    --amber:     #92600A;
+    --amber-lt:  #FEF3E2;
+    --code-bg:   #F0EFEC;
+    --code-fg:   #1E3254;
+    --text:      #1A1A1A;
+    --text-2:    #3A3A3A;
+    --text-3:    #6B7280;
+    --shadow:    0 1px 3px rgba(13,27,42,.07), 0 4px 16px rgba(13,27,42,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0D1B2A;--surface:#152033;--border:#253348;--navy:#E8EDF3;--navy-mid:#B8C9DE;
+      --slate:#8FA3BC;--orange:#F07548;--orange-lt:#2A1810;--green:#34D399;--green-lt:#0D2D22;
+      --blue:#60A5FA;--blue-lt:#0F2040;--amber:#FBBf24;--amber-lt:#2D2008;
+      --code-bg:#0A1520;--code-fg:#93C5FD;--text:#EEF2F7;--text-2:#C8D4E3;--text-3:#8FA3BC;
+      --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg:#F5F4F1;--surface:#FFFFFF;--border:#DDD9D0;--navy:#0D1B2A;--navy-mid:#1E3254;
+    --slate:#4A5568;--orange:#E05A2B;--orange-lt:#FDF0EB;--green:#0F7A55;--green-lt:#E6F5F0;
+    --blue:#1A4A8A;--blue-lt:#EBF1FA;--amber:#92600A;--amber-lt:#FEF3E2;
+    --code-bg:#F0EFEC;--code-fg:#1E3254;--text:#1A1A1A;--text-2:#3A3A3A;--text-3:#6B7280;
+    --shadow:0 1px 3px rgba(13,27,42,.07),0 4px 16px rgba(13,27,42,.05);
+  }
+  :root[data-theme="dark"] {
+    --bg:#0D1B2A;--surface:#152033;--border:#253348;--navy:#E8EDF3;--navy-mid:#B8C9DE;
+    --slate:#8FA3BC;--orange:#F07548;--orange-lt:#2A1810;--green:#34D399;--green-lt:#0D2D22;
+    --blue:#60A5FA;--blue-lt:#0F2040;--amber:#FBBf24;--amber-lt:#2D2008;
+    --code-bg:#0A1520;--code-fg:#93C5FD;--text:#EEF2F7;--text-2:#C8D4E3;--text-3:#8FA3BC;
+    --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
+  }
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.7;padding:48px 20px 100px}
+  .doc{max-width:840px;margin:0 auto}
+
+  /* Header */
+  .doc-header{border-bottom:2px solid var(--orange);padding-bottom:28px;margin-bottom:52px}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin-bottom:10px}
+  h1{font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:700;color:var(--navy);line-height:1.15;margin-bottom:8px;text-wrap:balance}
+  .doc-meta{font-size:13px;color:var(--text-3)}
+
+  /* Section headings */
+  .section{margin-top:56px}
+  .section-num{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);background:var(--orange-lt);padding:3px 8px;border-radius:3px;margin-bottom:10px}
+  h2{font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:var(--navy);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+  h3{font-size:14px;font-weight:700;color:var(--text);margin:24px 0 10px;letter-spacing:.02em}
+  h4{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);margin:20px 0 8px}
+  p{color:var(--text-2);margin-bottom:14px}
+  p:last-child{margin-bottom:0}
+  strong{color:var(--text)}
+  code{font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:.87em;background:var(--code-bg);padding:2px 5px;border-radius:3px;color:var(--orange)}
+
+  /* Call-out box */
+  .callout{background:var(--blue-lt);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:6px;padding:16px 20px;margin:20px 0}
+  .callout p{color:var(--text-2);font-size:14px;margin:0}
+  .callout strong{color:var(--blue)}
+
+  /* USB analogy box */
+  .analogy{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px 24px;margin:20px 0;box-shadow:var(--shadow)}
+  .analogy-row{display:grid;grid-template-columns:1fr 32px 1fr;align-items:center;gap:12px;font-size:14px}
+  .analogy-arrow{text-align:center;font-size:20px;color:var(--orange);font-weight:700}
+  .analogy-col{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+  .analogy-col .label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:4px}
+  .analogy-col .val{font-size:13px;font-weight:600;color:var(--text)}
+
+  /* Architecture diagram */
+  .arch{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:20px 0;box-shadow:var(--shadow)}
+  .arch-host{background:var(--navy-mid);padding:14px 16px;text-align:center}
+  .arch-host-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:10px}
+  .arch-clients{display:flex;gap:10px;justify-content:center}
+  .arch-client{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:5px;padding:7px 16px;font-size:12px;font-weight:600;color:#fff}
+  .arch-arrows{display:flex;justify-content:center;gap:120px;padding:8px 0;font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.05em}
+  .arch-servers{display:flex;gap:10px;justify-content:center;padding:12px}
+  .arch-server{flex:1;border:1px solid var(--border);border-radius:6px;overflow:hidden;max-width:220px}
+  .arch-server-head{padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .arch-server-head.bids{background:var(--blue-lt);color:var(--blue)}
+  .arch-server-head.mail{background:var(--orange-lt);color:var(--orange)}
+  .arch-server-head.docs{background:var(--green-lt);color:var(--green)}
+  .arch-server-body{padding:8px 12px;font-size:12px;color:var(--text-3);background:var(--bg);font-family:'Cascadia Code','Fira Code','Consolas',monospace}
+  .arch-bot-arrow{display:flex;justify-content:center;gap:120px;padding:8px 0;font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.05em}
+  .arch-datasources{display:flex;gap:10px;justify-content:center;padding:0 12px 12px}
+  .arch-ds{flex:1;max-width:220px;background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--text-3);font-family:'Cascadia Code','Fira Code','Consolas',monospace;text-align:center}
+
+  /* Three primitives */
+  .primitives{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:20px 0}
+  @media(max-width:640px){.primitives{grid-template-columns:1fr}}
+  .primitive{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:var(--shadow)}
+  .primitive-head{padding:12px 16px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+  .primitive-head.tools{background:var(--blue-lt);color:var(--blue)}
+  .primitive-head.resources{background:var(--green-lt);color:var(--green)}
+  .primitive-head.prompts{background:var(--orange-lt);color:var(--orange)}
+  .primitive-body{padding:12px 16px;font-size:13px;color:var(--text-2)}
+
+  /* Before / After */
+  .before-after{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+  @media(max-width:600px){.before-after{grid-template-columns:1fr}}
+  .ba-card{border-radius:8px;overflow:hidden;box-shadow:var(--shadow)}
+  .ba-head{padding:12px 18px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .ba-head.before{background:var(--amber-lt);color:var(--amber);border-bottom:1px solid var(--border)}
+  .ba-head.after{background:var(--green-lt);color:var(--green);border-bottom:1px solid var(--border)}
+  .ba-body{background:var(--surface);padding:14px 18px}
+  .ba-step{display:flex;gap:10px;margin-bottom:8px;font-size:13px;align-items:flex-start}
+  .ba-step:last-child{margin-bottom:0}
+  .ba-icon{flex-shrink:0;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px}
+  .ba-icon.bad{background:var(--amber-lt);color:var(--amber)}
+  .ba-icon.good{background:var(--green-lt);color:var(--green)}
+  .ba-step span{color:var(--text-2);line-height:1.5}
+
+  /* Code blocks */
+  pre{background:var(--code-bg);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;padding:16px 18px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:12.5px;line-height:1.75;overflow-x:auto;margin:12px 0 20px;color:var(--code-fg)}
+  .k{color:var(--orange);font-weight:600}   /* keyword / decorator */
+  .s{color:var(--green)}                    /* string */
+  .c{color:var(--text-3);font-style:italic} /* comment */
+  .n{color:var(--blue)}                     /* number / type */
+
+  /* Tables */
+  .table-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);margin:16px 0 28px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead th{background:var(--surface);color:var(--text-3);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 16px;text-align:left;border-bottom:1px solid var(--border)}
+  tbody tr{border-bottom:1px solid var(--border)}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:nth-child(even){background:var(--bg)}
+  tbody tr:nth-child(odd){background:var(--surface)}
+  td{padding:10px 16px;color:var(--text-2);vertical-align:top}
+  td:first-child{font-weight:500;color:var(--text)}
+  td code{font-size:.85em}
+  .tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em}
+  .tag.tool{background:var(--blue-lt);color:var(--blue)}
+  .tag.res{background:var(--green-lt);color:var(--green)}
+  .tag.req{background:var(--amber-lt);color:var(--amber)}
+  .tag.opt{background:var(--bg);color:var(--text-3);border:1px solid var(--border)}
+
+  /* Server cards */
+  .server-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+  @media(max-width:600px){.server-cards{grid-template-columns:1fr}}
+  .sc{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:var(--shadow)}
+  .sc-head{padding:12px 16px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .sc-head.bids{background:var(--blue-lt);color:var(--blue)}
+  .sc-head.sup{background:var(--green-lt);color:var(--green)}
+  .sc-head.doc{background:var(--amber-lt);color:var(--amber)}
+  .sc-head.email{background:var(--orange-lt);color:var(--orange)}
+  .sc-body{padding:14px 16px}
+  .sc-tool{font-size:12px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;color:var(--orange);background:var(--code-bg);padding:3px 8px;border-radius:3px;display:inline-block;margin:2px 2px 2px 0}
+  .sc-desc{font-size:13px;color:var(--text-2);margin-top:10px;line-height:1.5}
+
+  /* Steps */
+  .steps{display:flex;flex-direction:column;gap:0;margin:20px 0}
+  .step{display:flex;gap:16px;align-items:flex-start}
+  .step-num{flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--navy-mid);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .step-content{flex:1;padding-bottom:24px;border-left:1px dashed var(--border);margin-left:-28px;padding-left:44px}
+  .step:last-child .step-content{border-left:none}
+  .step-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+  .step-body{font-size:13px;color:var(--text-2)}
+
+  /* Impact summary */
+  .impact-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+  @media(max-width:600px){.impact-grid{grid-template-columns:1fr}}
+  .impact-row{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 16px;box-shadow:var(--shadow);font-size:13px}
+  .impact-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+  .impact-before{color:var(--amber);font-weight:500;margin-bottom:4px}
+  .impact-after{color:var(--green);font-weight:500}
+
+  /* Footer */
+  .doc-footer{margin-top:72px;padding-top:20px;border-top:1px solid var(--border);font-size:12px;color:var(--text-3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .footer-brand{font-weight:800;font-size:13px;color:var(--orange);letter-spacing:.04em}
+</style>
+
+<div class="doc">
+
+  <!-- ── Header ───────────────────────────────────────────── -->
+  <div class="doc-header">
+    <div class="eyebrow">Sysco RFP AIQ · Architecture Guide</div>
+    <h1>MCP Servers —<br>What They Are and How to Use Them</h1>
+    <div class="doc-meta">Model Context Protocol · FastAPI + Python · July 2026</div>
+  </div>
+
+  <!-- ── 1. What is MCP? ───────────────────────────────────── -->
+  <div class="section">
+    <div class="section-num">01</div>
+    <h2>What is MCP?</h2>
+    <p><strong>MCP (Model Context Protocol)</strong> is an open standard created by Anthropic (released November 2024) that defines a universal way for AI models to connect to external tools, data sources, and services — without writing a custom integration for each one.</p>
+
+    <div class="analogy">
+      <h4>The USB Analogy</h4>
+      <div class="analogy-row">
+        <div class="analogy-col">
+          <div class="label">Before USB</div>
+          <div class="val">Every device had a proprietary connector. Printers, cameras, keyboards — each needed its own plug and driver.</div>
+        </div>
+        <div class="analogy-arrow">→</div>
+        <div class="analogy-col">
+          <div class="label">After USB</div>
+          <div class="val">One universal standard. Any device plugs into any computer. No custom drivers, no proprietary connectors.</div>
+        </div>
+      </div>
+      <p style="margin-top:14px;font-size:13px;color:var(--text-2)"><strong>MCP is USB for AI.</strong> You write one MCP server for your tool. Any MCP-compatible AI — Claude Desktop, Claude Code, Cursor, VS Code Copilot — can use it automatically, with no custom glue code.</p>
+    </div>
+
+    <h3>The Problem MCP Solves</h3>
+    <p>Without MCP, if you want Claude to reason about your data, you must fetch everything, serialize it into a text block, inject it into the prompt, and hope it fits in the context window. That works for small datasets — but it breaks down fast.</p>
+    <p>With MCP, Claude <em>asks</em> for what it needs. Your server responds with live, precise data. The prompt stays small. The data stays current.</p>
+  </div>
+
+  <!-- ── 2. Architecture ───────────────────────────────────── -->
+  <div class="section">
+    <div class="section-num">02</div>
+    <h2>How MCP Works</h2>
+    <p>MCP uses a <strong>client-server architecture</strong> with three roles. The AI application is the host; it contains MCP clients that speak the protocol. Your code runs as MCP servers that expose tools and data.</p>
+
+    <div class="arch">
+      <div class="arch-host">
+        <div class="arch-host-label">Host — Claude Desktop / Claude Code / any MCP-compatible AI</div>
+        <div class="arch-clients">
+          <div class="arch-client">MCP Client 1</div>
+          <div class="arch-client">MCP Client 2</div>
+          <div class="arch-client">MCP Client 3</div>
+        </div>
+      </div>
+      <div class="arch-arrows">
+        <span>▼ JSON-RPC (stdio or HTTP) ▼</span>
+        <span>▼ JSON-RPC (stdio or HTTP) ▼</span>
+        <span>▼ JSON-RPC (stdio or HTTP) ▼</span>
+      </div>
+      <div class="arch-servers">
+        <div class="arch-server">
+          <div class="arch-server-head bids">Bids MCP Server</div>
+          <div class="arch-server-body">mcp_server.py<br>Tools: get_bid,<br>list_bids, ...</div>
+        </div>
+        <div class="arch-server">
+          <div class="arch-server-head mail">Email MCP Server</div>
+          <div class="arch-server-body">mcp_server.py<br>Tools: get_threads,<br>search_emails, ...</div>
+        </div>
+        <div class="arch-server">
+          <div class="arch-server-head docs">Docs MCP Server</div>
+          <div class="arch-server-body">mcp_server.py<br>Resources: docs://,<br>Tools: search, ...</div>
+        </div>
+      </div>
+      <div class="arch-arrows">
+        <span>▼ Repository calls ▼</span>
+        <span>▼ Graph API calls ▼</span>
+        <span>▼ File reads ▼</span>
+      </div>
+      <div class="arch-datasources">
+        <div class="arch-ds">data/bids.json<br>data/lineItems.json</div>
+        <div class="arch-ds">Microsoft Graph<br>data/emailThreads.json</div>
+        <div class="arch-ds">uploads/<br>data/documents.json</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Role</th><th>What it is</th><th>Who writes it</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>Host</td><td>The AI application the user talks to</td><td>Anthropic / IDEs</td><td>Claude Desktop, Claude Code</td></tr>
+          <tr><td>Client</td><td>Connector inside the host that speaks MCP</td><td>Built into the host — you don't write this</td><td>Automatic</td></tr>
+          <tr><td>Server</td><td>Your code exposing tools and data</td><td><strong>You write this</strong></td><td>backend_py/mcp_server.py</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Transport Options</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Transport</th><th>When to use</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td><strong>stdio</strong></td><td>Local dev, Claude Code, Claude Desktop</td><td>Host spawns your script as a subprocess; communicates via stdin/stdout</td></tr>
+          <tr><td><strong>HTTP + SSE</strong></td><td>Production, remote deployment, shared team servers</td><td>Server listens on an HTTP endpoint; client subscribes via Server-Sent Events</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px;color:var(--text-2)">For Sysco RFP AIQ: use <strong>stdio</strong> during development (zero infrastructure), <strong>HTTP + SSE</strong> once deployed to Azure/AWS.</p>
+  </div>
+
+  <!-- ── 3. Three Primitives ───────────────────────────────── -->
+  <div class="section">
+    <div class="section-num">03</div>
+    <h2>The Three Things MCP Servers Expose</h2>
+
+    <div class="primitives">
+      <div class="primitive">
+        <div class="primitive-head tools">🔧 Tools</div>
+        <div class="primitive-body">Functions the AI can call. The AI decides when to call them — you just define what they do.<br><br>Like API endpoints, but the AI is the client.</div>
+      </div>
+      <div class="primitive">
+        <div class="primitive-head resources">📄 Resources</div>
+        <div class="primitive-body">Data the AI can read on demand. Identified by a URI (like a file path or URL).<br><br>For larger, less dynamic data the AI reads passively.</div>
+      </div>
+      <div class="primitive">
+        <div class="primitive-head prompts">💬 Prompts</div>
+        <div class="primitive-body">Reusable prompt templates stored on the server side.<br><br>Standard instructions your team wants every AI session to start with.</div>
+      </div>
+    </div>
+
+<pre><span class="c"># Tools — the AI calls these on-demand</span>
+<span class="k">@mcp.tool</span>()
+<span class="k">async def</span> get_bid(bid_id: <span class="n">str</span>) -> <span class="n">dict</span>:
+    <span class="s">"""Get full bid details by ID."""</span>
+    <span class="k">return</span> await bids_repo.find_one(lambda b: b[<span class="s">"id"</span>] == bid_id)
+
+<span class="c"># Resources — the AI reads these like a file</span>
+<span class="k">@mcp.resource</span>(<span class="s">"bids://active"</span>)
+<span class="k">async def</span> active_bids() -> <span class="n">str</span>:
+    <span class="s">"""All bids in Active or Solicitation status."""</span>
+    bids = await bids_repo.load()
+    <span class="k">return</span> str([b <span class="k">for</span> b <span class="k">in</span> bids <span class="k">if</span> b[<span class="s">"status"</span>] <span class="k">in</span> (<span class="s">"Active"</span>, <span class="s">"Solicitation"</span>)])</pre>
+  </div>
+
+  <!-- ── 4. The Problem in This Project ─────────────────────── -->
+  <div class="section">
+    <div class="section-num">04</div>
+    <h2>The Current Problem in This Project</h2>
+    <p>In <code>routers/ai_chat.py</code>, the function <code>_build_system_prompt()</code> runs on <strong>every single chat message</strong>:</p>
+
+    <div class="before-after">
+      <div class="ba-card">
+        <div class="ba-head before">⚠ Current — Mega-Prompt Approach</div>
+        <div class="ba-body">
+          <div class="ba-step"><div class="ba-icon bad">✕</div><span>Load ALL bids from disk</span></div>
+          <div class="ba-step"><div class="ba-icon bad">✕</div><span>Load ALL line items from disk</span></div>
+          <div class="ba-step"><div class="ba-icon bad">✕</div><span>Load ALL email threads from disk</span></div>
+          <div class="ba-step"><div class="ba-icon bad">✕</div><span>Load ALL documents from disk</span></div>
+          <div class="ba-step"><div class="ba-icon bad">✕</div><span>Read up to 10 uploaded files (PDFs, Excel)</span></div>
+          <div class="ba-step"><div class="ba-icon bad">✕</div><span>Serialize everything into one giant string</span></div>
+          <div class="ba-step"><div class="ba-icon bad">✕</div><span>Inject 50,000+ tokens into Claude's prompt</span></div>
+          <div class="ba-step"><div class="ba-icon bad">✕</div><span>Static snapshot — stale the moment data changes</span></div>
+        </div>
+      </div>
+      <div class="ba-card">
+        <div class="ba-head after">✓ With MCP Tools</div>
+        <div class="ba-body">
+          <div class="ba-step"><div class="ba-icon good">✓</div><span>Send a small system prompt (identity only)</span></div>
+          <div class="ba-step"><div class="ba-icon good">✓</div><span>Claude reads the user's question</span></div>
+          <div class="ba-step"><div class="ba-icon good">✓</div><span>Claude calls <code>get_bid("BID-089")</code> — fetches one bid</span></div>
+          <div class="ba-step"><div class="ba-icon good">✓</div><span>Claude calls <code>get_bid_emails("BID-089")</code> if needed</span></div>
+          <div class="ba-step"><div class="ba-icon good">✓</div><span>Claude answers with live, precise data</span></div>
+          <div class="ba-step"><div class="ba-icon good">✓</div><span>~500 tokens used instead of 50,000</span></div>
+          <div class="ba-step"><div class="ba-icon good">✓</div><span>Works the same with 500 bids as with 50</span></div>
+          <div class="ba-step"><div class="ba-icon good">✓</div><span>Always live — no stale snapshots</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="impact-grid">
+      <div class="impact-row">
+        <div class="impact-label">Token usage per message</div>
+        <div class="impact-before">~50,000 tokens (all data)</div>
+        <div class="impact-after">~500 tokens (only what's needed)</div>
+      </div>
+      <div class="impact-row">
+        <div class="impact-label">Data freshness</div>
+        <div class="impact-before">Stale snapshot at request time</div>
+        <div class="impact-after">Live on every tool call</div>
+      </div>
+      <div class="impact-row">
+        <div class="impact-label">Scales to 500+ bids?</div>
+        <div class="impact-before">No — hits context window limit</div>
+        <div class="impact-after">Yes — context stays the same size</div>
+      </div>
+      <div class="impact-row">
+        <div class="impact-label">Claude Code in development</div>
+        <div class="impact-before">Cannot see live bid data</div>
+        <div class="impact-after">Can call get_bid() directly</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. MCP Servers for This Project ─────────────────────── -->
+  <div class="section">
+    <div class="section-num">05</div>
+    <h2>Five MCP Servers for Sysco RFP AIQ</h2>
+
+    <div class="server-cards">
+      <div class="sc">
+        <div class="sc-head bids">🗂 Bids Server</div>
+        <div class="sc-body">
+          <div class="sc-tool">get_bid</div>
+          <div class="sc-tool">list_bids</div>
+          <div class="sc-tool">get_bid_summary</div>
+          <div class="sc-tool">get_bid_line_items</div>
+          <div class="sc-tool">update_bid_status</div>
+          <div class="sc-desc">Most important server. Gives Claude direct, on-demand access to bid data — status, line items, supplier contacts, compliance, deadlines.</div>
+        </div>
+      </div>
+      <div class="sc">
+        <div class="sc-head sup">🏢 Suppliers Server</div>
+        <div class="sc-body">
+          <div class="sc-tool">search_suppliers</div>
+          <div class="sc-tool">get_supplier</div>
+          <div class="sc-tool">auto_populate_suppliers</div>
+          <div class="sc-tool">list_by_category</div>
+          <div class="sc-desc">Lets Claude search the supplier database and recommend suppliers for a bid's item categories without loading the full list each time.</div>
+        </div>
+      </div>
+      <div class="sc">
+        <div class="sc-head doc">📁 Document Vault Server</div>
+        <div class="sc-body">
+          <div class="sc-tool">search_documents</div>
+          <div class="sc-tool">get_document_text</div>
+          <div class="sc-tool">list_documents_for_bid</div>
+          <div class="sc-desc">Exposes uploaded PDFs and Excel files as readable resources. Claude reads a file only when it's relevant, instead of re-reading all 10 on every request.</div>
+        </div>
+      </div>
+      <div class="sc">
+        <div class="sc-head email">✉ Email Server</div>
+        <div class="sc-body">
+          <div class="sc-tool">get_email_threads</div>
+          <div class="sc-tool">search_emails</div>
+          <div class="sc-tool">get_unmatched_emails</div>
+          <div class="sc-desc">Connects Claude to the email thread history per bid, and optionally to the live Microsoft Graph inbox for real-time supplier activity.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sc" style="margin-top:0">
+      <div class="sc-head" style="background:var(--blue-lt);color:var(--blue)">🤖 RFP Analysis Server (AI-on-AI)</div>
+      <div class="sc-body">
+        <div class="sc-tool">analyse_supplier_response</div>
+        <div class="sc-tool">extract_pricing_from_file</div>
+        <div class="sc-tool">parse_rfp_document</div>
+        <div class="sc-tool">score_bid_competitiveness</div>
+        <div class="sc-desc" style="margin-top:10px">Wraps the existing AI-powered routes as callable MCP tools. Claude (as the chat assistant) can call Claude (as the analysis engine) — chaining AI reasoning across tasks.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 6. How to Build ──────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-num">06</div>
+    <h2>How to Build and Run an MCP Server</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Install the SDK</div>
+          <div class="step-body">Inside <code>backend_py/</code>:</div>
+<pre>pip install mcp</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Create <code>backend_py/mcp_server.py</code></div>
+<pre><span class="k">from</span> mcp.server.fastmcp <span class="k">import</span> FastMCP
+<span class="k">from</span> repositories.bids_repo <span class="k">import</span> BidsRepository
+<span class="k">from</span> repositories.suppliers_repo <span class="k">import</span> SuppliersRepository
+
+mcp = FastMCP(
+    name=<span class="s">"sysco-rfpaiq"</span>,
+    instructions=<span class="s">"Tools for the Sysco RFP AIQ bid management platform."</span>
+)
+
+<span class="c"># ── Bid tools ───────────────────────────────────────────────</span>
+<span class="k">@mcp.tool</span>()
+<span class="k">async def</span> get_bid(bid_id: <span class="n">str</span>) -> <span class="n">dict</span>:
+    <span class="s">"""Get full details for a bid by its ID."""</span>
+    repo = BidsRepository(<span class="s">"data/bids.json"</span>)
+    result = <span class="k">await</span> repo.find_one(<span class="k">lambda</span> b: b.get(<span class="s">"id"</span>) == bid_id)
+    <span class="k">return</span> result <span class="k">or</span> {<span class="s">"error"</span>: <span class="n">f</span><span class="s">"Bid {bid_id!r} not found"</span>}
+
+<span class="k">@mcp.tool</span>()
+<span class="k">async def</span> list_bids(
+    segment: <span class="n">str</span> = <span class="s">""</span>,
+    status: <span class="n">str</span> = <span class="s">""</span>,
+) -> <span class="n">list</span>[<span class="n">dict</span>]:
+    <span class="s">"""List bids, optionally filtered by segment or status."""</span>
+    repo = BidsRepository(<span class="s">"data/bids.json"</span>)
+    bids = <span class="k">await</span> repo.load()
+    <span class="k">if</span> segment: bids = [b <span class="k">for</span> b <span class="k">in</span> bids <span class="k">if</span> b.get(<span class="s">"segment"</span>) == segment]
+    <span class="k">if</span> status:  bids = [b <span class="k">for</span> b <span class="k">in</span> bids <span class="k">if</span> b.get(<span class="s">"status"</span>)  == status]
+    <span class="k">return</span> [{<span class="s">"id"</span>: b[<span class="s">"id"</span>], <span class="s">"customer"</span>: b.get(<span class="s">"customer"</span>),
+             <span class="s">"status"</span>: b.get(<span class="s">"status"</span>), <span class="s">"customerDue"</span>: b.get(<span class="s">"customerDue"</span>)} <span class="k">for</span> b <span class="k">in</span> bids]
+
+<span class="c"># ── Supplier tools ───────────────────────────────────────────</span>
+<span class="k">@mcp.tool</span>()
+<span class="k">async def</span> search_suppliers(query: <span class="n">str</span>, category: <span class="n">str</span> = <span class="s">""</span>) -> <span class="n">list</span>[<span class="n">dict</span>]:
+    <span class="s">"""Search suppliers by name or category."""</span>
+    repo = SuppliersRepository(<span class="s">"data/suppliers.json"</span>)
+    suppliers = <span class="k">await</span> repo.load()
+    term = query.lower()
+    results = [s <span class="k">for</span> s <span class="k">in</span> suppliers
+               <span class="k">if</span> term <span class="k">in</span> s.get(<span class="s">"name"</span>, <span class="s">""</span>).lower()
+               <span class="k">or</span> term <span class="k">in</span> s.get(<span class="s">"category"</span>, <span class="s">""</span>).lower()]
+    <span class="k">if</span> category: results = [s <span class="k">for</span> s <span class="k">in</span> results <span class="k">if</span> s.get(<span class="s">"category"</span>) == category]
+    <span class="k">return</span> results[:<span class="n">10</span>]
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    mcp.run()  <span class="c"># stdio transport — Claude connects to this process</span></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Connect to Claude Code</div>
+          <div class="step-body">Add to <code>.claude/settings.json</code> in your project root:</div>
+<pre>{
+  <span class="s">"mcpServers"</span>: {
+    <span class="s">"sysco-rfpaiq"</span>: {
+      <span class="s">"command"</span>: <span class="s">"python"</span>,
+      <span class="s">"args"</span>: [<span class="s">"backend_py/mcp_server.py"</span>],
+      <span class="s">"cwd"</span>: <span class="s">"c:/Sysco/feature_vaibhav_python/feature_vaibhav_python"</span>
+    }
+  }
+}</pre>
+          <div class="step-body">After saving, Claude Code picks up the tools automatically. Type <code>/mcp</code> in Claude Code to verify they're registered.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">Connect to Claude Desktop</div>
+          <div class="step-body">Open Claude Desktop → Settings → Developer → Edit Config:</div>
+<pre>{
+  <span class="s">"mcpServers"</span>: {
+    <span class="s">"sysco-rfpaiq"</span>: {
+      <span class="s">"command"</span>: <span class="s">"C:/Sysco/.../backend_py/.venv/Scripts/python.exe"</span>,
+      <span class="s">"args"</span>: [<span class="s">"C:/Sysco/.../backend_py/mcp_server.py"</span>]
+    }
+  }
+}</pre>
+          <div class="step-body">Restart Claude Desktop. A 🔨 icon appears in the chat input — tools are active.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 7. Integrating into ai_chat.py ─────────────────────── -->
+  <div class="section">
+    <div class="section-num">07</div>
+    <h2>Upgrading the Existing AI Chat Router</h2>
+    <p>The biggest win: replace <code>_build_system_prompt()</code> in <code>routers/ai_chat.py</code> with LangChain tool-calling. LangChain is already used in this project via <code>services/llm/factory.py</code>.</p>
+
+<pre><span class="c"># routers/ai_chat.py — upgraded approach</span>
+<span class="k">from</span> langchain_core.tools <span class="k">import</span> tool
+<span class="k">from</span> langchain_anthropic <span class="k">import</span> ChatAnthropic
+
+<span class="k">@tool</span>
+<span class="k">async def</span> get_bid_tool(bid_id: <span class="n">str</span>) -> <span class="n">str</span>:
+    <span class="s">"""Fetch full details for a bid including line items and supplier contacts."""</span>
+    bid = <span class="k">await</span> bids_repo.find_one(<span class="k">lambda</span> b: b[<span class="s">"id"</span>] == bid_id)
+    <span class="k">return</span> str(bid)
+
+<span class="k">@tool</span>
+<span class="k">async def</span> list_bids_tool(status: <span class="n">str</span> = <span class="s">""</span>, segment: <span class="n">str</span> = <span class="s">""</span>) -> <span class="n">str</span>:
+    <span class="s">"""List bids with optional status or segment filter."""</span>
+    bids = <span class="k">await</span> bids_repo.load()
+    <span class="c"># ... filter and return ...</span>
+
+<span class="c"># Bind tools to the model — it decides when to call each one</span>
+llm_with_tools = llm.bind_tools([get_bid_tool, list_bids_tool, search_suppliers_tool])
+
+<span class="c"># The system prompt is now tiny — no pre-fetched data needed</span>
+SYSTEM = <span class="s">"You are the Sysco RFP AIQ assistant. Use the tools to answer questions about bids and suppliers."</span>
+
+result = <span class="k">await</span> llm_with_tools.ainvoke([
+    {<span class="s">"role"</span>: <span class="s">"system"</span>, <span class="s">"content"</span>: SYSTEM},
+    *body.messages
+])</pre>
+
+    <div class="callout">
+      <p><strong>How it works at runtime:</strong> The model reads the user's question, decides which tool to call (e.g. <code>get_bid_tool("BID-089")</code>), receives the result, and continues reasoning. This loop happens automatically — you just define what each tool does.</p>
+    </div>
+  </div>
+
+  <!-- ── 8. Production ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-num">08</div>
+    <h2>Production: HTTP + SSE Transport</h2>
+    <p>Once deployed to Azure or AWS, mount the MCP server onto the existing FastAPI app so any Claude client can reach it via HTTPS:</p>
+
+<pre><span class="c"># backend_py/main.py — add to existing FastAPI app</span>
+<span class="k">from</span> mcp.server.fastmcp <span class="k">import</span> FastMCP
+<span class="k">from</span> mcp.server.fastmcp.transport.sse <span class="k">import</span> add_sse_routes
+
+mcp = FastMCP(<span class="s">"sysco-rfpaiq"</span>)
+<span class="c"># ... register tools ...</span>
+
+<span class="c"># Mount at /api/mcp alongside existing routes</span>
+add_sse_routes(app, mcp, path=<span class="s">"/api/mcp"</span>)</pre>
+
+    <p>Claude Code connects via the URL:</p>
+<pre>{
+  <span class="s">"mcpServers"</span>: {
+    <span class="s">"sysco-rfpaiq"</span>: {
+      <span class="s">"url"</span>: <span class="s">"https://rfpaiq.sysco.com/api/mcp"</span>
+    }
+  }
+}</pre>
+  </div>
+
+  <!-- ── 9. Summary ────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-num">09</div>
+    <h2>Summary — What MCP Unlocks</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Current limitation</th><th>With MCP</th></tr></thead>
+        <tbody>
+          <tr><td>All bids loaded on every chat message</td><td>Claude fetches only the bid it needs, on demand</td></tr>
+          <tr><td>Context window fills with 500+ bids</td><td>Context stays the same size regardless of data growth</td></tr>
+          <tr><td>Stale snapshot in every prompt</td><td>Live data on every tool call</td></tr>
+          <tr><td>ai_chat.py reads 10 files every request</td><td>Claude reads a document only when it's relevant</td></tr>
+          <tr><td>Claude Code cannot see live bid data</td><td>Claude Code can call <code>get_bid()</code> while writing code</td></tr>
+          <tr><td>No way to let Claude update bid status</td><td><code>update_bid_status()</code> tool enables it safely</td></tr>
+          <tr><td>Custom integration for every AI client</td><td>One MCP server works with all MCP-compatible tools</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Required Package</h3>
+<pre>pip install mcp</pre>
+    <p style="font-size:13px;color:var(--text-2)">Published by Anthropic · <code>pypi.org/project/mcp</code> · Full docs at <code>modelcontextprotocol.io</code></p>
+  </div>
+
+  <div class="doc-footer">
+    <span class="footer-brand">SYSCO RFP AIQ</span>
+    <span>MCP Architecture Guide · July 2026</span>
+  </div>
+</div>

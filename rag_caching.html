@@ -1,0 +1,749 @@
+
+<title>RAG Caching — Types &amp; Strategies · Sysco RFP AIQ</title>
+<style>
+  :root {
+    --bg:       #F4F3F0;
+    --surface:  #FFFFFF;
+    --border:   #DEDAD4;
+    --navy:     #0D1B2A;
+    --navy-2:   #1E3254;
+    --slate:    #4A5568;
+    --orange:   #E05A2B;
+    --orange-lt:#FDF0EB;
+    --text:     #1A1A1A;
+    --text-2:   #3A3A3A;
+    --text-3:   #6B7280;
+    --code-bg:  #F0EFEC;
+    --code-fg:  #1E3254;
+    --shadow:   0 1px 4px rgba(13,27,42,.08), 0 6px 20px rgba(13,27,42,.05);
+
+    /* Layer accent colours */
+    --l1: #475569; --l1-lt: #F1F5F9;
+    --l2: #7C3AED; --l2-lt: #F5F3FF;
+    --l3: #0891B2; --l3-lt: #ECFEFF;
+    --l4: #059669; --l4-lt: #ECFDF5;
+    --l5: #16A34A; --l5-lt: #F0FDF4;
+    --l6: #D97706; --l6-lt: #FFFBEB;
+    --l7: #E05A2B; --l7-lt: #FDF0EB;
+    --l8: #DC2626; --l8-lt: #FEF2F2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0D1B2A;--surface:#152033;--border:#253348;--navy:#E8EDF3;--navy-2:#B8C9DE;
+      --slate:#8FA3BC;--orange:#F07548;--orange-lt:#2A1810;--text:#EEF2F7;--text-2:#C8D4E3;--text-3:#8FA3BC;
+      --code-bg:#0A1520;--code-fg:#93C5FD;--shadow:0 1px 4px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.2);
+      --l1:#94A3B8;--l1-lt:#0F172A;--l2:#A78BFA;--l2-lt:#1E1040;
+      --l3:#22D3EE;--l3-lt:#0C2840;--l4:#34D399;--l4-lt:#0A2A1C;
+      --l5:#4ADE80;--l5-lt:#0D2B15;--l6:#FCD34D;--l6-lt:#2C1F08;
+      --l7:#F07548;--l7-lt:#2A1810;--l8:#F87171;--l8-lt:#2C0D0D;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg:#F4F3F0;--surface:#FFFFFF;--border:#DEDAD4;--navy:#0D1B2A;--navy-2:#1E3254;
+    --slate:#4A5568;--orange:#E05A2B;--orange-lt:#FDF0EB;--text:#1A1A1A;--text-2:#3A3A3A;--text-3:#6B7280;
+    --code-bg:#F0EFEC;--code-fg:#1E3254;--shadow:0 1px 4px rgba(13,27,42,.08),0 6px 20px rgba(13,27,42,.05);
+    --l1:#475569;--l1-lt:#F1F5F9;--l2:#7C3AED;--l2-lt:#F5F3FF;
+    --l3:#0891B2;--l3-lt:#ECFEFF;--l4:#059669;--l4-lt:#ECFDF5;
+    --l5:#16A34A;--l5-lt:#F0FDF4;--l6:#D97706;--l6-lt:#FFFBEB;
+    --l7:#E05A2B;--l7-lt:#FDF0EB;--l8:#DC2626;--l8-lt:#FEF2F2;
+  }
+  :root[data-theme="dark"] {
+    --bg:#0D1B2A;--surface:#152033;--border:#253348;--navy:#E8EDF3;--navy-2:#B8C9DE;
+    --slate:#8FA3BC;--orange:#F07548;--orange-lt:#2A1810;--text:#EEF2F7;--text-2:#C8D4E3;--text-3:#8FA3BC;
+    --code-bg:#0A1520;--code-fg:#93C5FD;--shadow:0 1px 4px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.2);
+    --l1:#94A3B8;--l1-lt:#0F172A;--l2:#A78BFA;--l2-lt:#1E1040;
+    --l3:#22D3EE;--l3-lt:#0C2840;--l4:#34D399;--l4-lt:#0A2A1C;
+    --l5:#4ADE80;--l5-lt:#0D2B15;--l6:#FCD34D;--l6-lt:#2C1F08;
+    --l7:#F07548;--l7-lt:#2A1810;--l8:#F87171;--l8-lt:#2C0D0D;
+  }
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:15px;line-height:1.7;padding:48px 20px 100px}
+  .doc{max-width:860px;margin:0 auto}
+
+  /* Header */
+  .header{border-bottom:2px solid var(--orange);padding-bottom:28px;margin-bottom:48px}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin-bottom:10px}
+  h1{font-family:Georgia,'Times New Roman',serif;font-size:32px;font-weight:700;color:var(--navy);line-height:1.2;margin-bottom:8px;text-wrap:balance}
+  .meta{font-size:13px;color:var(--text-3)}
+
+  /* Intro */
+  .intro p{color:var(--text-2);margin-bottom:14px}
+
+  /* ── Pipeline Stack ── */
+  .pipeline{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:28px 0;box-shadow:var(--shadow)}
+  .pipeline-title{background:var(--navy-2);padding:12px 20px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:8px}
+  .pipeline-title span{color:#fff}
+  .pipeline-row{display:flex;align-items:stretch;border-top:1px solid var(--border);cursor:default}
+  .pipeline-row:hover{filter:brightness(1.03)}
+  .pipeline-badge{width:80px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;gap:3px}
+  .pipeline-badge .lnum{font-size:16px;font-weight:800;letter-spacing:0}
+  .pipeline-content{flex:1;padding:11px 16px;border-left:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .pipeline-name{font-size:13px;font-weight:600;color:var(--text)}
+  .pipeline-meta{font-size:12px;color:var(--text-3);text-align:right;flex-shrink:0}
+  .pipeline-meta strong{display:block;font-size:11px;color:var(--text-2)}
+  .r1 .pipeline-badge{background:var(--l1-lt);color:var(--l1)}
+  .r2 .pipeline-badge{background:var(--l2-lt);color:var(--l2)}
+  .r3 .pipeline-badge{background:var(--l3-lt);color:var(--l3)}
+  .r4 .pipeline-badge{background:var(--l4-lt);color:var(--l4)}
+  .r5 .pipeline-badge{background:var(--l5-lt);color:var(--l5)}
+  .r6 .pipeline-badge{background:var(--l6-lt);color:var(--l6)}
+  .r7 .pipeline-badge{background:var(--l7-lt);color:var(--l7)}
+  .r8 .pipeline-badge{background:var(--l8-lt);color:var(--l8)}
+
+  /* Section headings */
+  .section{margin-top:56px}
+  .section-eye{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .sec-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px;text-transform:uppercase;letter-spacing:.07em}
+  h2{font-family:Georgia,'Times New Roman',serif;font-size:21px;font-weight:700;color:var(--navy);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+  h3{font-size:14px;font-weight:700;color:var(--text);margin:22px 0 9px}
+  h4{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin:18px 0 7px}
+  p{color:var(--text-2);margin-bottom:12px}
+  p:last-child{margin-bottom:0}
+  strong{color:var(--text)}
+  code{font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:.87em;background:var(--code-bg);padding:2px 5px;border-radius:3px;color:var(--orange)}
+
+  /* Callout */
+  .callout{border-radius:6px;padding:14px 18px;margin:16px 0;border:1px solid var(--border)}
+  .callout p{font-size:13.5px;margin:0}
+
+  /* Code */
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:6px;padding:16px 18px;font-family:'Cascadia Code','Fira Code','Consolas',monospace;font-size:12.5px;line-height:1.75;overflow-x:auto;margin:10px 0 20px;color:var(--code-fg)}
+  .k{color:var(--orange);font-weight:600}
+  .s{color:var(--l5)}
+  .c{color:var(--text-3);font-style:italic}
+  .n{color:var(--l3)}
+  .d{color:var(--l2)}   /* decorator */
+
+  /* Tables */
+  .tw{overflow-x:auto;border-radius:8px;border:1px solid var(--border);margin:14px 0 24px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{background:var(--surface);color:var(--text-3);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:9px 14px;text-align:left;border-bottom:1px solid var(--border)}
+  tbody tr{border-bottom:1px solid var(--border)}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:nth-child(even) td{background:var(--bg)}
+  tbody tr:nth-child(odd) td{background:var(--surface)}
+  td{padding:9px 14px;color:var(--text-2);vertical-align:top}
+  td:first-child{font-weight:500;color:var(--text)}
+  td code{font-size:.84em}
+
+  /* Before / After savings box */
+  .savings{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:20px 0}
+  @media(max-width:620px){.savings{grid-template-columns:1fr}}
+  .sv{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:14px 16px;box-shadow:var(--shadow)}
+  .sv-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px}
+  .sv-before{font-size:13px;color:var(--l8);font-weight:500;margin-bottom:4px;line-height:1.4}
+  .sv-after{font-size:13px;color:var(--l4);font-weight:600;line-height:1.4}
+
+  /* Cost table highlight */
+  .cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+  @media(max-width:560px){.cost-grid{grid-template-columns:1fr}}
+  .cost-card{background:var(--surface);border:1px solid var(--border);border-radius:7px;overflow:hidden;box-shadow:var(--shadow)}
+  .cost-head{padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+  .cost-body{padding:12px 14px;font-size:13px;color:var(--text-2);line-height:1.6}
+  .cost-num{font-size:20px;font-weight:800;line-height:1.1;margin:6px 0 4px}
+
+  /* Priority list */
+  .prio-list{display:flex;flex-direction:column;gap:10px;margin:20px 0}
+  .prio{display:flex;gap:14px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:14px 16px;box-shadow:var(--shadow)}
+  .prio-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-top:1px}
+  .prio-body{flex:1}
+  .prio-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+  .prio-desc{font-size:13px;color:var(--text-2);line-height:1.5}
+
+  /* Quick ref */
+  .quickref{background:var(--navy-2);border-radius:8px;padding:20px 24px;margin:20px 0}
+  .quickref h4{color:rgba(255,255,255,.5);margin-top:0;margin-bottom:12px}
+  .quickref pre{background:transparent;border:none;border-left:2px solid rgba(255,255,255,.2);border-radius:0;padding:0 0 0 14px;margin:0;color:rgba(255,255,255,.85);font-size:12px}
+  .quickref .k{color:#F07548}
+  .quickref .c{color:rgba(255,255,255,.4)}
+  .quickref .s{color:#4ADE80}
+  .quickref .n{color:#22D3EE}
+
+  /* Footer */
+  .footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--border);font-size:12px;color:var(--text-3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .brand{font-weight:800;font-size:13px;color:var(--orange);letter-spacing:.04em}
+</style>
+
+<div class="doc">
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="eyebrow">Sysco RFP AIQ · Data Architecture Guide</div>
+    <h1>RAG Caching —<br>Types, Layers, and Strategies</h1>
+    <div class="meta">Retrieval-Augmented Generation · FastAPI + Python · July 2026</div>
+  </div>
+
+  <!-- ── Intro ── -->
+  <div class="intro">
+    <p><strong>RAG (Retrieval-Augmented Generation)</strong> works as a pipeline — document → parse → chunk → embed → vector store → retrieve → LLM prompt → response. Every step has a cost: API dollars, CPU time, disk I/O, latency. The same document gets chunked every restart. The same query hits the vector store repeatedly. The same context block gets sent to Claude on every chat message.</p>
+    <p>Caching stores the output of each step so subsequent requests skip it. The right cache at the right layer can reduce latency by 10× and cost by 90%.</p>
+  </div>
+
+  <!-- ── Pipeline Stack ── -->
+  <div class="pipeline">
+    <div class="pipeline-title"><span>RAG Pipeline</span> — 8 Caching Layers (top = user response, bottom = raw data)</div>
+
+    <div class="pipeline-row r8">
+      <div class="pipeline-badge"><div class="lnum">8</div>API</div>
+      <div class="pipeline-content">
+        <div class="pipeline-name">API Route Cache — full HTTP response</div>
+        <div class="pipeline-meta"><strong>Storage:</strong> Redis / in-memory<br><strong>TTL:</strong> 30 s – 2 min</div>
+      </div>
+    </div>
+    <div class="pipeline-row r7">
+      <div class="pipeline-badge"><div class="lnum">7</div>Prompt</div>
+      <div class="pipeline-content">
+        <div class="pipeline-name">Provider Prompt Cache — Anthropic / OpenAI server-side</div>
+        <div class="pipeline-meta"><strong>Storage:</strong> Provider servers<br><strong>TTL:</strong> 5 min (resets on use)</div>
+      </div>
+    </div>
+    <div class="pipeline-row r6">
+      <div class="pipeline-badge"><div class="lnum">6</div>LLM</div>
+      <div class="pipeline-content">
+        <div class="pipeline-name">LLM Response Cache — exact prompt match</div>
+        <div class="pipeline-meta"><strong>Storage:</strong> SQLite / Redis<br><strong>TTL:</strong> 1 – 10 min</div>
+      </div>
+    </div>
+    <div class="pipeline-row r5">
+      <div class="pipeline-badge"><div class="lnum">5</div>Semantic</div>
+      <div class="pipeline-content">
+        <div class="pipeline-name">Semantic Query Cache — fuzzy / paraphrase match</div>
+        <div class="pipeline-meta"><strong>Storage:</strong> Vector DB<br><strong>TTL:</strong> 2 – 10 min</div>
+      </div>
+    </div>
+    <div class="pipeline-row r4">
+      <div class="pipeline-badge"><div class="lnum">4</div>Retrieval</div>
+      <div class="pipeline-content">
+        <div class="pipeline-name">Retrieval Result Cache — top-k chunks per query</div>
+        <div class="pipeline-meta"><strong>Storage:</strong> RAM / Redis<br><strong>TTL:</strong> 1 – 5 min</div>
+      </div>
+    </div>
+    <div class="pipeline-row r3">
+      <div class="pipeline-badge"><div class="lnum">3</div>Index</div>
+      <div class="pipeline-content">
+        <div class="pipeline-name">Vector Index Cache — FAISS / Chroma kept in RAM</div>
+        <div class="pipeline-meta"><strong>Storage:</strong> Process RAM<br><strong>TTL:</strong> Session / until invalidated</div>
+      </div>
+    </div>
+    <div class="pipeline-row r2">
+      <div class="pipeline-badge"><div class="lnum">2</div>Embed</div>
+      <div class="pipeline-content">
+        <div class="pipeline-name">Embedding Cache — text chunk → float32 vector</div>
+        <div class="pipeline-meta"><strong>Storage:</strong> Redis / Disk<br><strong>TTL:</strong> 30 – 90 days</div>
+      </div>
+    </div>
+    <div class="pipeline-row r1">
+      <div class="pipeline-badge"><div class="lnum">1</div>Doc</div>
+      <div class="pipeline-content">
+        <div class="pipeline-name">Document Cache — raw → parsed → chunked text</div>
+        <div class="pipeline-meta"><strong>Storage:</strong> Disk / SQLite<br><strong>TTL:</strong> 7 – 30 days</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Layer 1 ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--l1-lt);color:var(--l1)">Layer 1</div>
+    </div>
+    <h2>Document Preprocessing Cache</h2>
+    <p>Caches the output of parsing and chunking raw documents — PDFs, Excel, Word files. Parsing a 50-page PDF with <code>pdfminer</code> takes 2–5 seconds per file. Re-chunking 100 documents on every restart wastes minutes.</p>
+
+    <h3>What to store</h3>
+<pre><span class="c"># key = SHA-256 of the raw file bytes</span>
+SHA256(file_bytes) → {
+  <span class="s">"chunks"</span>: [<span class="s">"chunk 1 text..."</span>, <span class="s">"chunk 2 text..."</span>, ...],
+  <span class="s">"metadata"</span>: { <span class="s">"pages"</span>: <span class="n">50</span>, <span class="s">"parsed_at"</span>: <span class="s">"2026-07-13"</span> }
+}</pre>
+
+    <h3>Code example — <code>diskcache</code></h3>
+<pre><span class="k">import</span> diskcache, hashlib
+
+_cache = diskcache.Cache(<span class="s">"data/.chunk_cache"</span>)
+
+<span class="k">def</span> chunk_with_cache(file_bytes: <span class="n">bytes</span>, chunk_fn) -> <span class="n">list</span>[<span class="n">str</span>]:
+    key = hashlib.sha256(file_bytes).hexdigest()
+    <span class="k">if</span> key <span class="k">in</span> _cache:
+        <span class="k">return</span> _cache[key]
+    chunks = chunk_fn(file_bytes)
+    _cache.set(key, chunks, expire=<span class="n">7</span> * <span class="n">24</span> * <span class="n">3600</span>)   <span class="c"># 7 days</span>
+    <span class="k">return</span> chunks</pre>
+
+    <div class="savings">
+      <div class="sv"><div class="sv-label">Parse time saved</div><div class="sv-before">2–5 s per file</div><div class="sv-after">0 ms on cache hit</div></div>
+      <div class="sv"><div class="sv-label">TTL</div><div class="sv-before">Data changes rarely</div><div class="sv-after">7–30 days</div></div>
+      <div class="sv"><div class="sv-label">Invalidate when</div><div class="sv-before">File replaced</div><div class="sv-after">File hash changes</div></div>
+    </div>
+  </div>
+
+  <!-- ── Layer 2 ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--l2-lt);color:var(--l2)">Layer 2</div>
+    </div>
+    <h2>Embedding Cache</h2>
+    <p>The vector representation of each text chunk — <code>"chunk text..." → [0.23, 0.11, -0.44, ...]</code>. This is the <strong>most expensive repeated operation</strong> in RAG. Calling the embedding API costs time and money on every re-index.</p>
+
+    <div class="cost-grid">
+      <div class="cost-card">
+        <div class="cost-head" style="background:var(--l8-lt);color:var(--l8)">Without embedding cache</div>
+        <div class="cost-body">
+          <div class="cost-num" style="color:var(--l8)">~$2.00</div>
+          per 100K chunks re-indexed<br>(OpenAI ada-002, 200 tokens/chunk)
+        </div>
+      </div>
+      <div class="cost-card">
+        <div class="cost-head" style="background:var(--l4-lt);color:var(--l4)">With embedding cache</div>
+        <div class="cost-body">
+          <div class="cost-num" style="color:var(--l4)">$0.00</div>
+          for every subsequent re-index run<br>unless the model changes
+        </div>
+      </div>
+    </div>
+
+    <h3>LangChain built-in (drop-in, one change)</h3>
+<pre><span class="k">from</span> langchain.embeddings <span class="k">import</span> CacheBackedEmbeddings
+<span class="k">from</span> langchain.storage <span class="k">import</span> LocalFileStore
+<span class="k">from</span> langchain_openai <span class="k">import</span> OpenAIEmbeddings
+
+store = LocalFileStore(<span class="s">"data/.embedding_cache"</span>)
+base  = OpenAIEmbeddings(model=<span class="s">"text-embedding-ada-002"</span>)
+
+<span class="c"># Drop-in replacement — caches automatically by text hash + namespace</span>
+cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+    base, store, namespace=base.model
+)</pre>
+
+    <h3>Custom Redis cache</h3>
+<pre><span class="k">import</span> redis, hashlib, numpy <span class="k">as</span> np
+
+r = redis.Redis()
+
+<span class="k">def</span> embed_cached(text: <span class="n">str</span>, embed_fn, model=<span class="s">"ada-002"</span>) -> <span class="n">list</span>[<span class="n">float</span>]:
+    key = <span class="s">f"emb:{hashlib.sha256(f'{model}:{text}'.encode()).hexdigest()}"</span>
+    cached = r.get(key)
+    <span class="k">if</span> cached:
+        <span class="k">return</span> np.frombuffer(cached, dtype=np.float32).tolist()
+    vec = embed_fn(text)
+    r.set(key, np.array(vec, dtype=np.float32).tobytes(), ex=<span class="n">90</span> * <span class="n">86400</span>)
+    <span class="k">return</span> vec</pre>
+
+    <p style="font-size:13px;color:var(--text-3)"><strong>TTL:</strong> 30–90 days. Embeddings are deterministic — same text + same model always produces the same vector. Only invalidate if you switch embedding models.</p>
+  </div>
+
+  <!-- ── Layer 3 ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--l3-lt);color:var(--l3)">Layer 3</div>
+    </div>
+    <h2>Vector Index Cache (In-Memory)</h2>
+    <p>Keeps the loaded FAISS or ChromaDB index in RAM as a process-level singleton. Loading a FAISS index with 100K vectors from disk takes 500 ms – 2 s per request — unacceptable for interactive search.</p>
+
+<pre><span class="c"># dependencies.py — consistent with existing repo singleton pattern</span>
+<span class="k">import</span> faiss, json
+<span class="k">from</span> pathlib <span class="k">import</span> Path
+
+_index: faiss.Index | <span class="n">None</span> = <span class="n">None</span>
+_chunks: <span class="n">list</span>[<span class="n">str</span>] = []
+
+<span class="k">def</span> get_vector_index() -> <span class="n">tuple</span>[faiss.Index, <span class="n">list</span>[<span class="n">str</span>]]:
+    <span class="k">global</span> _index, _chunks
+    <span class="k">if</span> _index <span class="k">is</span> <span class="n">None</span>:
+        _index  = faiss.read_index(<span class="n">str</span>(Path(<span class="s">"data/faiss.index"</span>)))
+        _chunks = json.loads(Path(<span class="s">"data/chunks.json"</span>).read_text())
+    <span class="k">return</span> _index, _chunks
+
+<span class="k">def</span> invalidate_index():
+    <span class="k">global</span> _index, _chunks
+    _index, _chunks = <span class="n">None</span>, []   <span class="c"># next request reloads from disk</span></pre>
+
+    <div class="tw"><table>
+      <thead><tr><th>Vector Store</th><th>Needs in-memory cache?</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>FAISS (local)</td><td>Yes — always</td><td>FAISS is in-process memory only</td></tr>
+        <tr><td>ChromaDB (persistent)</td><td>Yes — keep client alive</td><td>Disk reload still adds latency</td></tr>
+        <tr><td>Pinecone / Qdrant / Weaviate</td><td>No — not needed</td><td>Managed service; index lives on their servers</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- ── Layer 4 ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--l4-lt);color:var(--l4)">Layer 4</div>
+    </div>
+    <h2>Retrieval Result Cache</h2>
+    <p>Caches the top-k chunks returned by a vector similarity search for a given query. Dashboards refreshing, multiple users asking the same question — the ANN search runs identically each time.</p>
+
+<pre><span class="k">from</span> cachetools <span class="k">import</span> TTLCache
+<span class="k">import</span> hashlib, json
+
+_retrieval: TTLCache = TTLCache(maxsize=<span class="n">500</span>, ttl=<span class="n">120</span>)   <span class="c"># 2-minute TTL</span>
+
+<span class="k">def</span> retrieve_cached(query: <span class="n">str</span>, index, k: <span class="n">int</span> = <span class="n">5</span>) -> <span class="n">list</span>[<span class="n">str</span>]:
+    key = hashlib.sha256(
+        json.dumps({<span class="s">"q"</span>: query, <span class="s">"k"</span>: k}, sort_keys=<span class="n">True</span>).encode()
+    ).hexdigest()
+    <span class="k">if</span> key <span class="k">in</span> _retrieval:
+        <span class="k">return</span> _retrieval[key]
+    results = index.search(query, k=k)
+    _retrieval[key] = results
+    <span class="k">return</span> results</pre>
+
+    <p style="font-size:13px;color:var(--text-2)"><strong>Hit rate:</strong> typically 15–40% in multi-user deployments. <strong>TTL:</strong> keep short (1–5 min) — bid data changes throughout the day.</p>
+  </div>
+
+  <!-- ── Layer 5 ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--l5-lt);color:var(--l5)">Layer 5</div>
+    </div>
+    <h2>Semantic Query Cache</h2>
+    <p>Matches <strong>semantically similar</strong> past queries — not just exact hash matches. "What is the response rate for BID-089?" and "How many suppliers responded to BID-089?" should return the same cached answer.</p>
+
+    <h3>How it works</h3>
+<pre><span class="n">1.</span> Embed the incoming query        → q_vec
+<span class="n">2.</span> Search a small "query cache"     → past (query_vec, response) pairs
+<span class="n">3.</span> If cosine_similarity ≥ <span class="n">0.95</span>    → return cached response
+<span class="n">4.</span> Otherwise                        → run full RAG pipeline, store result</pre>
+
+    <h3>Code example</h3>
+<pre><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass
+
+<span class="k">@dataclass</span>
+<span class="k">class</span> CachedQA:
+    query_vec: <span class="n">list</span>[<span class="n">float</span>]
+    response:  <span class="n">str</span>
+
+_sem_cache: <span class="n">list</span>[CachedQA] = []
+THRESHOLD = <span class="n">0.95</span>
+
+<span class="k">def</span> _cos(a, b) -> <span class="n">float</span>:
+    a, b = np.array(a), np.array(b)
+    <span class="k">return</span> <span class="n">float</span>(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+<span class="k">def</span> sem_lookup(query: <span class="n">str</span>, embed_fn) -> <span class="n">str</span> | <span class="n">None</span>:
+    q_vec = embed_fn(query)
+    <span class="k">for</span> entry <span class="k">in</span> _sem_cache:
+        <span class="k">if</span> _cos(q_vec, entry.query_vec) >= THRESHOLD:
+            <span class="k">return</span> entry.response   <span class="c"># cache hit</span>
+    <span class="k">return</span> <span class="n">None</span>
+
+<span class="k">def</span> sem_store(query: <span class="n">str</span>, response: <span class="n">str</span>, embed_fn) -> <span class="n">None</span>:
+    _sem_cache.append(CachedQA(embed_fn(query), response))</pre>
+
+    <div class="tw"><table>
+      <thead><tr><th>Similarity threshold</th><th>Behaviour</th><th>Risk</th></tr></thead>
+      <tbody>
+        <tr><td>0.99</td><td>Near-identical phrasing only</td><td>Low — very conservative</td></tr>
+        <tr><td><strong>0.95</strong></td><td><strong>Catches paraphrases, common synonyms</strong></td><td><strong>Recommended</strong></td></tr>
+        <tr><td>0.90</td><td>Aggressive fuzzy matching</td><td>High — false positives for different intents</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout" style="background:var(--l8-lt);border-color:var(--l8)">
+      <p><strong>Do NOT use semantic cache</strong> for queries containing specific IDs ("BID-089" vs "BID-090") or real-time data where stale answers are harmful. Small semantic differences can mean very different correct answers.</p>
+    </div>
+  </div>
+
+  <!-- ── Layer 6 ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--l6-lt);color:var(--l6)">Layer 6</div>
+    </div>
+    <h2>LLM Response Cache (Exact Match)</h2>
+    <p>Caches the final LLM response for an exact prompt hash. Useful for scheduled reports, health-check bots, or during development to avoid burning API quota.</p>
+
+    <h3>LangChain built-in (one line at startup)</h3>
+<pre><span class="k">from</span> langchain.globals <span class="k">import</span> set_llm_cache
+<span class="k">from</span> langchain.cache <span class="k">import</span> SQLiteCache, RedisCache, InMemoryCache
+<span class="k">import</span> redis
+
+<span class="c"># Choose one:</span>
+set_llm_cache(SQLiteCache(<span class="s">".langchain_cache.db"</span>))     <span class="c"># disk, persists restarts</span>
+set_llm_cache(InMemoryCache())                           <span class="c"># process lifetime only</span>
+set_llm_cache(RedisCache(redis_=redis.Redis(), ttl=<span class="n">300</span>)) <span class="c"># 5-minute TTL</span>
+
+<span class="c"># All subsequent LangChain LLM calls are now cached automatically — no other changes</span></pre>
+
+    <div class="tw"><table>
+      <thead><tr><th>Situation</th><th>Use LLM cache?</th></tr></thead>
+      <tbody>
+        <tr><td>Scheduled hourly report</td><td>Yes — same query every run</td></tr>
+        <tr><td>Development / testing</td><td>Yes — avoid API cost during iteration</td></tr>
+        <tr><td>Live conversational chat</td><td>No — context changes per message</td></tr>
+        <tr><td>Queries with real-time bid data</td><td>No — stale response worse than no cache</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- ── Layer 7 ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--l7-lt);color:var(--l7)">Layer 7 — Most Impactful for This Project</div>
+    </div>
+    <h2>Provider Prompt Cache (Anthropic / OpenAI)</h2>
+    <p>Marks repeated context blocks — system instructions, retrieved chunks — for <strong>server-side caching on Anthropic's infrastructure</strong>. No client-side storage needed. This is the highest-ROI cache for the Sysco RFP AIQ chat feature.</p>
+
+    <div class="cost-grid">
+      <div class="cost-card">
+        <div class="cost-head" style="background:var(--l8-lt);color:var(--l8)">Without prompt cache</div>
+        <div class="cost-body">
+          <div class="cost-num" style="color:var(--l8)">$3.00</div>
+          per 50K-token prompt × 20 messages<br>(input at $3.00 / 1M tokens)
+        </div>
+      </div>
+      <div class="cost-card">
+        <div class="cost-head" style="background:var(--l4-lt);color:var(--l4)">With prompt cache</div>
+        <div class="cost-body">
+          <div class="cost-num" style="color:var(--l4)">$0.48</div>
+          1 write ($0.19) + 19 reads ($0.29)<br><strong>84% cost reduction</strong>
+        </div>
+      </div>
+    </div>
+
+    <h3>Anthropic — add <code>cache_control</code> to repeated context</h3>
+<pre><span class="k">import</span> anthropic
+
+client = anthropic.Anthropic()
+
+response = client.messages.create(
+    model=<span class="s">"claude-sonnet-4-20250514"</span>,
+    max_tokens=<span class="n">1024</span>,
+    system=[
+        {
+            <span class="s">"type"</span>: <span class="s">"text"</span>,
+            <span class="s">"text"</span>: <span class="s">"You are the Sysco RFP AIQ assistant."</span>,
+        },
+        {
+            <span class="s">"type"</span>: <span class="s">"text"</span>,
+            <span class="s">"text"</span>: retrieved_context,    <span class="c"># 10,000+ tokens of bid data</span>
+            <span class="s">"cache_control"</span>: {<span class="s">"type"</span>: <span class="s">"ephemeral"</span>},  <span class="c"># ← mark for caching</span>
+        }
+    ],
+    messages=conversation_history,      <span class="c"># live, not cached</span>
+)</pre>
+
+    <h3>Anthropic pricing with cache</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Token type</th><th>Cost (Sonnet)</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Input (uncached write)</td><td>$3.75 / 1M tokens</td><td>First time the block is sent (+25%)</td></tr>
+        <tr><td>Cache read</td><td><strong style="color:var(--l4)">$0.30 / 1M tokens</strong></td><td><strong>90% discount on all subsequent reads</strong></td></tr>
+        <tr><td>Input (no cache)</td><td>$3.00 / 1M tokens</td><td>Normal rate without caching</td></tr>
+        <tr><td>Output</td><td>$15.00 / 1M tokens</td><td>Unchanged — caching does not affect output</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>OpenAI — automatic (no code changes)</h3>
+<pre><span class="c"># Prompts >1024 tokens are cached automatically — no special config</span>
+response = client.chat.completions.create(
+    model=<span class="s">"gpt-4o"</span>,
+    messages=[...],
+)
+<span class="c"># Check cache usage:</span>
+<span class="n">print</span>(response.usage.prompt_tokens_details)
+<span class="c"># → PromptTokensDetails(cached_tokens=8192)  — 50% discount applied</span></pre>
+
+    <h3>Integration into <code>routers/ai_chat.py</code></h3>
+<pre><span class="c"># Split static context (cached) from the live user turn</span>
+<span class="k">async def</span> chat(body: ChatRequest, llm=Depends(get_llm_service)):
+    context = <span class="k">await</span> retrieve_bid_context(body.bid_id, body.messages[-<span class="n">1</span>].content)
+
+    response = <span class="k">await</span> llm.chat_with_cache(
+        static_context=context,      <span class="c"># marked cache_control — charged once</span>
+        messages=body.messages,      <span class="c"># live conversation — never cached</span>
+    )
+    <span class="k">return</span> {<span class="s">"reply"</span>: response}</pre>
+
+    <p style="font-size:13px;color:var(--text-2)"><strong>Cache TTL:</strong> 5 minutes from last use. Each read resets the window — as long as users send one message every &lt;5 minutes, the cache stays warm for the entire session.</p>
+  </div>
+
+  <!-- ── Layer 8 ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--l8-lt);color:var(--l8)">Layer 8</div>
+    </div>
+    <h2>API Route Cache</h2>
+    <p>Caches the full HTTP response at the FastAPI route level — before any RAG or LLM work begins. Dashboard endpoints called on every page refresh by every user are ideal candidates.</p>
+
+    <h3><code>fastapi-cache2</code> (recommended)</h3>
+<pre><span class="c"># pip install fastapi-cache2[redis]</span>
+<span class="k">from</span> fastapi_cache <span class="k">import</span> FastAPICache
+<span class="k">from</span> fastapi_cache.backends.redis <span class="k">import</span> RedisBackend
+<span class="k">from</span> fastapi_cache.decorator <span class="k">import</span> cache
+<span class="k">import</span> redis.asyncio <span class="k">as</span> aioredis
+
+<span class="c"># In lifespan startup (main.py):</span>
+r = aioredis.from_url(<span class="s">"redis://localhost"</span>)
+FastAPICache.init(RedisBackend(r), prefix=<span class="s">"rfpaiq-cache"</span>)
+
+<span class="c"># On any route:</span>
+<span class="k">@router.get</span>(<span class="s">"/summary"</span>)
+<span class="d">@cache</span>(expire=<span class="n">60</span>)   <span class="c"># 60-second TTL — applied automatically</span>
+<span class="k">async def</span> get_bid_summary(bid_id: <span class="n">str</span>) -> <span class="n">dict</span>:
+    ...</pre>
+
+    <h3>Lightweight in-memory alternative (no Redis)</h3>
+<pre><span class="k">from</span> cachetools <span class="k">import</span> TTLCache
+_route_cache: TTLCache = TTLCache(maxsize=<span class="n">100</span>, ttl=<span class="n">60</span>)
+
+<span class="k">def</span> route_cache(ttl: <span class="n">int</span> = <span class="n">60</span>):
+    <span class="k">def</span> deco(fn):
+        <span class="k">import</span> functools
+        <span class="d">@functools.wraps</span>(fn)
+        <span class="k">async def</span> wrapper(*args, **kwargs):
+            key = <span class="n">str</span>(kwargs)
+            <span class="k">if</span> key <span class="k">in</span> _route_cache:
+                <span class="k">return</span> _route_cache[key]
+            result = <span class="k">await</span> fn(*args, **kwargs)
+            _route_cache[key] = result
+            <span class="k">return</span> result
+        <span class="k">return</span> wrapper
+    <span class="k">return</span> deco</pre>
+  </div>
+
+  <!-- ── Decision Matrix ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--orange-lt);color:var(--orange)">Reference</div>
+    </div>
+    <h2>Decision Matrix</h2>
+    <div class="tw"><table>
+      <thead><tr><th>Layer</th><th>Cache type</th><th>TTL</th><th>Storage</th><th>Key saving</th><th>Use when</th></tr></thead>
+      <tbody>
+        <tr><td>1 — Doc</td><td>Document chunks</td><td>7–30 days</td><td>Disk / SQLite</td><td>Parse time</td><td>Documents re-indexed on restart</td></tr>
+        <tr><td>2 — Embed</td><td>Text → vector</td><td>30–90 days</td><td>Redis / Disk</td><td>API cost + time</td><td>Same chunks re-embedded often</td></tr>
+        <tr><td>3 — Index</td><td>Vector index RAM</td><td>Session</td><td>Process RAM</td><td>Load latency</td><td>FAISS or local ChromaDB</td></tr>
+        <tr><td>4 — Retrieval</td><td>Top-k per query</td><td>1–5 min</td><td>RAM / Redis</td><td>Search CPU</td><td>Repeated identical queries</td></tr>
+        <tr><td>5 — Semantic</td><td>Paraphrase match</td><td>2–10 min</td><td>RAM / Vector DB</td><td>Full pipeline</td><td>Many users, varied phrasing</td></tr>
+        <tr><td>6 — LLM exact</td><td>Prompt → response</td><td>1–10 min</td><td>SQLite / Redis</td><td>LLM cost + latency</td><td>Scheduled / static queries</td></tr>
+        <tr><td>7 — Prompt</td><td>Context block</td><td>5 min</td><td>Provider servers</td><td>90% input cost</td><td>Long repeated context</td></tr>
+        <tr><td>8 — API</td><td>HTTP response</td><td>30–120 s</td><td>Redis / RAM</td><td>Everything</td><td>Dashboard / analytics endpoints</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- ── Cache Invalidation ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--l2-lt);color:var(--l2)">Patterns</div>
+    </div>
+    <h2>Cache Invalidation</h2>
+
+    <h3>Event-driven (preferred)</h3>
+<pre><span class="c"># Call this after upload_document(), delete_document(), etc.</span>
+<span class="k">async def</span> on_document_change():
+    invalidate_index()            <span class="c"># Layer 3</span>
+    _retrieval_cache.clear()     <span class="c"># Layer 4</span>
+    <span class="c"># Layers 1 & 2: old entries expire naturally; new file gets new key</span>
+    <span class="c"># Layer 7: Anthropic cache expires after 5 min of inactivity</span></pre>
+
+    <h3>Version tag (distributed cache)</h3>
+<pre>_ver = <span class="n">0</span>
+
+<span class="k">def</span> cache_key(q: <span class="n">str</span>) -> <span class="n">str</span>:
+    <span class="k">return</span> <span class="s">f"v{_ver}:{hashlib.sha256(q.encode()).hexdigest()}"</span>
+
+<span class="k">def</span> invalidate_all():
+    <span class="k">global</span> _ver
+    _ver += <span class="n">1</span>   <span class="c"># all old keys become unreachable, expire naturally</span></pre>
+
+    <div class="tw"><table>
+      <thead><tr><th>Strategy</th><th>When to use</th><th>Downside</th></tr></thead>
+      <tbody>
+        <tr><td>TTL expiry</td><td>Always — as a safety net</td><td>Stale data until TTL fires</td></tr>
+        <tr><td>Event-driven clear</td><td>On data writes you control</td><td>Must wire every write path</td></tr>
+        <tr><td>Version tag</td><td>Distributed Redis with many writers</td><td>Orphaned keys accumulate (need maxmemory policy)</td></tr>
+        <tr><td>File hash key</td><td>Layers 1 & 2 (doc / embedding)</td><td>Old entries stay until eviction</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- ── Priority for this project ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--orange-lt);color:var(--orange)">This Project</div>
+    </div>
+    <h2>Implementation Priority for Sysco RFP AIQ</h2>
+
+    <div class="prio-list">
+      <div class="prio">
+        <div class="prio-num" style="background:var(--l7);color:#fff">1</div>
+        <div class="prio-body">
+          <div class="prio-title">Anthropic Prompt Cache (Layer 7) — implement now</div>
+          <div class="prio-desc">The chat feature sends 50K-token prompts every message. Adding <code>cache_control</code> to the retrieved context block in <code>services/llm/provider.py</code> cuts costs by ~84% on multi-turn conversations. One-block change, no new packages.</div>
+        </div>
+      </div>
+      <div class="prio">
+        <div class="prio-num" style="background:var(--l2);color:#fff">2</div>
+        <div class="prio-body">
+          <div class="prio-title">Embedding Cache (Layer 2) — before adding semantic search</div>
+          <div class="prio-desc">LangChain <code>CacheBackedEmbeddings</code> is a one-line drop-in for any <code>OpenAIEmbeddings</code> or <code>VertexAIEmbeddings</code> call. Add it before the first indexing run to avoid ever paying twice.</div>
+        </div>
+      </div>
+      <div class="prio">
+        <div class="prio-num" style="background:var(--l3);color:#fff">3</div>
+        <div class="prio-body">
+          <div class="prio-title">Vector Index In-Memory (Layer 3) — when FAISS/Chroma is added</div>
+          <div class="prio-desc">Add a module-level singleton in <code>dependencies.py</code> — consistent with the existing repository singleton pattern (<code>_bids</code>, <code>_suppliers</code>, etc.).</div>
+        </div>
+      </div>
+      <div class="prio">
+        <div class="prio-num" style="background:var(--l4);color:#fff">4</div>
+        <div class="prio-body">
+          <div class="prio-title">Retrieval Result Cache (Layer 4) — with AI chat upgrade</div>
+          <div class="prio-desc">When <code>ai_chat.py</code> is upgraded to tool-calling (see <code>mcp_servers.md</code>), wrap the retrieval call with a 2-minute <code>cachetools.TTLCache</code>. Zero infrastructure — pure Python.</div>
+        </div>
+      </div>
+      <div class="prio">
+        <div class="prio-num" style="background:var(--l8);color:#fff">5</div>
+        <div class="prio-body">
+          <div class="prio-title">API Route Cache (Layer 8) — for dashboard endpoints</div>
+          <div class="prio-desc">Add <code>@cache(expire=60)</code> from <code>fastapi-cache2</code> to <code>GET /api/bids</code> and <code>GET /api/suppliers</code>. 60-second TTL is enough to absorb dashboard refresh storms without serving stale data.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Packages needed</h3>
+<pre>pip install diskcache      <span class="c"># Layer 1 — document chunk cache</span>
+pip install cachetools     <span class="c"># Layer 3, 4 — TTLCache (lightweight, no Redis)</span>
+pip install fastapi-cache2 <span class="c"># Layer 8 — route-level cache decorator</span>
+<span class="c"># Layer 2: CacheBackedEmbeddings — already in langchain (no new package)</span>
+<span class="c"># Layer 7: cache_control flag — already in anthropic SDK (no new package)</span></pre>
+  </div>
+
+  <!-- ── Quick Reference ── -->
+  <div class="section">
+    <div class="section-eye">
+      <div class="sec-badge" style="background:var(--orange-lt);color:var(--orange)">Quick Ref</div>
+    </div>
+    <h2>Quick Reference</h2>
+    <div class="quickref">
+      <h4>Cost &amp; Latency at a Glance</h4>
+      <pre><span class="c">COST SAVINGS (Claude Sonnet, per 1M tokens)</span>
+  <span class="k">No cache:</span>         <span class="s">$3.00</span> input
+  <span class="k">Prompt cache hit:</span> <span class="s">$0.30</span> input   <span class="c">← 90% saving (Layer 7)</span>
+
+<span class="c">LATENCY SAVINGS (per request)</span>
+  <span class="k">Layer 1</span> (doc parse):   <span class="n">save 2–5 s</span>
+  <span class="k">Layer 2</span> (embed):       <span class="n">save 50–200 ms</span> per chunk
+  <span class="k">Layer 3</span> (index load):  <span class="n">save 500 ms – 2 s</span>
+  <span class="k">Layer 4</span> (retrieval):   <span class="n">save 10–50 ms</span>
+  <span class="k">Layer 6</span> (LLM full):    <span class="n">save 500 ms – 3 s</span>
+
+<span class="c">RULE OF THUMB</span>
+  If the input doesn't change             <span class="s">→ cache it</span>
+  If the data changes frequently          <span class="s">→ use a short TTL</span>
+  If it's a repeated context block        <span class="s">→ use provider prompt cache</span>
+  If the response is purely analytical    <span class="s">→ cache at Layer 6 or 8</span></pre>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="brand">SYSCO RFP AIQ</span>
+    <span>RAG Caching Guide · July 2026</span>
+  </div>
+</div>
