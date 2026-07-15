@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Export Feature — Implementation Guide</title>
+<style>
+  /* Word-compatible reset */
+  body {
+    font-family: Calibri, 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    color: #1F2937;
+    margin: 0;
+    background: #fff;
+    line-height: 1.6;
+  }
+
+  /* Page wrapper — mimics A4 in Word */
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 60px 80px;
+  }
+
+  /* Cover */
+  .cover {
+    background: #0D2137;
+    color: #fff;
+    padding: 40px 60px 32px;
+    margin: -48px -60px 40px;
+  }
+  .cover-tag {
+    font-size: 9pt;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #E05A2B;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .cover-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 26pt;
+    font-weight: normal;
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .cover-sub {
+    font-size: 12pt;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 28px;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 32px;
+    font-size: 9pt;
+    color: rgba(255,255,255,0.5);
+    border-top: 1px solid rgba(255,255,255,0.12);
+    padding-top: 16px;
+  }
+  .cover-meta span strong { color: rgba(255,255,255,0.85); }
+  .cover-stripe {
+    height: 4px;
+    background: linear-gradient(90deg, #E05A2B 0%, #F59E0B 50%, #16A34A 100%);
+    margin: -32px -60px 0;
+  }
+
+  /* Headings */
+  h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18pt;
+    font-weight: normal;
+    color: #0D2137;
+    margin: 36px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #E05A2B;
+  }
+  h2 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 13pt;
+    font-weight: normal;
+    color: #1A3A56;
+    margin: 28px 0 8px;
+  }
+  h3 {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #0D2137;
+    margin: 20px 0 6px;
+    letter-spacing: 0.03em;
+  }
+
+  p { margin: 0 0 10px; }
+
+  /* ── File change cards ── */
+  .file-card {
+    border: 1px solid #E2E8F0;
+    border-left: 4px solid #0D2137;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .file-card.new-file   { border-left-color: #16A34A; }
+  .file-card.edit-file  { border-left-color: #E05A2B; }
+  .file-card.activate   { border-left-color: #7C3AED; }
+
+  .file-card-header {
+    background: #F8FAFC;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .file-tag {
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tag-new      { background: #DCFCE7; color: #15803D; }
+  .tag-edit     { background: #FEF3C7; color: #B45309; }
+  .tag-activate { background: #EDE9FE; color: #6D28D9; }
+
+  .file-path {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 9.5pt;
+    color: #1E293B;
+    font-weight: 600;
+  }
+  .file-desc {
+    font-size: 9pt;
+    color: #64748B;
+    margin-left: auto;
+    text-align: right;
+  }
+  .file-card-body { padding: 14px 16px; }
+  .file-card-body p { margin-bottom: 8px; font-size: 10pt; }
+
+  /* ── Code blocks ── */
+  pre {
+    background: #0F172A;
+    color: #E2E8F0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 8.5pt;
+    line-height: 1.6;
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 10px 0;
+    white-space: pre;
+  }
+  .c-comment { color: #64748B; }
+  .c-keyword { color: #93C5FD; }
+  .c-string  { color: #86EFAC; }
+  .c-fn      { color: #FDE68A; }
+  .c-import  { color: #C4B5FD; }
+  .c-added   { color: #4ADE80; }
+  .c-orange  { color: #FB923C; }
+
+  /* ── Diff blocks ── */
+  .diff {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 8.5pt;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+  .diff-header {
+    background: #F1F5F9;
+    padding: 6px 14px;
+    font-size: 8pt;
+    color: #64748B;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .diff-body { background: #fff; }
+  .diff-line { padding: 2px 14px; line-height: 1.7; }
+  .diff-add  { background: #F0FDF4; color: #15803D; }
+  .diff-rem  { background: #FEF2F2; color: #B91C1C; }
+  .diff-ctx  { color: #94A3B8; }
+  .diff-ln   { color: #CBD5E1; margin-right: 12px; display: inline-block; min-width: 28px; text-align: right; }
+
+  /* ── Info boxes ── */
+  .info-box {
+    border-left: 3px solid #3B82F6;
+    background: #EFF6FF;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  .tip-box {
+    border-left: 3px solid #16A34A;
+    background: #F0FDF4;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  .warn-box {
+    border-left: 3px solid #F59E0B;
+    background: #FFFBEB;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 10pt;
+  }
+  th {
+    background: #0D2137;
+    color: #fff;
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  td { padding: 8px 12px; border-bottom: 1px solid #E2E8F0; vertical-align: top; }
+  tr:nth-child(even) td { background: #F8FAFC; }
+
+  /* ── Architecture flow ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .flow-box {
+    background: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 9pt;
+    font-weight: 600;
+    color: #1E293B;
+    white-space: nowrap;
+  }
+  .flow-box.highlight { background: #0D2137; color: #fff; border-color: #0D2137; }
+  .flow-box.new-box   { background: #DCFCE7; color: #166534; border-color: #86EFAC; }
+  .flow-arrow { font-size: 14pt; color: #94A3B8; padding: 0 6px; }
+
+  /* ── Excel sheet tabs ── */
+  .sheet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+  .sheet-card {
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 12px 14px;
+    background: #F8FAFC;
+  }
+  .sheet-name { font-size: 9pt; font-weight: 700; color: #0D2137; margin-bottom: 4px; }
+  .sheet-desc { font-size: 9pt; color: #64748B; line-height: 1.5; }
+
+  /* ── Summary checklist ── */
+  .checklist { list-style: none; padding: 0; margin: 12px 0; }
+  .checklist li {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 6px 0; border-bottom: 1px solid #F1F5F9;
+    font-size: 10pt;
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .check-icon { color: #16A34A; font-size: 11pt; margin-top: 1px; flex-shrink: 0; }
+  .check-file { font-family: 'Courier New', monospace; font-size: 9pt; color: #0D2137; font-weight: 600; }
+  .check-note { color: #64748B; font-size: 9pt; }
+
+  /* Print */
+  @media print {
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .cover-stripe { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    pre { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .diff-add, .diff-rem { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .file-card { break-inside: avoid; }
+    h1, h2 { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-tag">Sysco RFP AIQ · Frontend</div>
+  <div class="cover-title">Export Feature<br>Implementation Guide</div>
+  <div class="cover-sub">PDF and Excel export from the Bid Queue page</div>
+  <div class="cover-meta">
+    <span><strong>Branch</strong> feature_vaibhav_python</span>
+    <span><strong>Date</strong> July 15, 2026</span>
+    <span><strong>Files Changed</strong> 3 new · 1 activation step</span>
+    <span><strong>Backend changes</strong> None required</span>
+  </div>
+  <div class="cover-stripe"></div>
+</div>
+
+<!-- 1. WHAT WAS BUILT -->
+<h1>1. What Was Built</h1>
+
+<p>An <strong>Export</strong> button has been added to the top-right of the Bid Queue page header. Clicking it opens a modal asking whether to export as <strong>PDF</strong> or <strong>Excel</strong>.</p>
+
+<ul>
+  <li><strong>PDF</strong> — triggers <code>window.print()</code>. The user picks "Save as PDF" in the browser print dialog. No server call needed.</li>
+  <li><strong>Excel</strong> — generates a <code>.xls</code> file entirely in the browser using <strong>SpreadsheetML</strong> (Microsoft's XML format). No external library, no server call. The file downloads instantly and opens in Excel, Numbers, and Google Sheets.</li>
+</ul>
+
+<p>The export always uses the <strong>currently filtered</strong> bids — so if the user has filtered to "Healthcare" before clicking Export, the file only contains Healthcare bids.</p>
+
+<div class="tip-box">
+  ✅ <strong>No backend changes required.</strong> Everything runs client-side. No new Python routes, no new npm packages.
+</div>
+
+<!-- 2. CALL FLOW -->
+<h1>2. How the Pieces Connect</h1>
+
+<div class="flow">
+  <div class="flow-box highlight">Bid Queue page<br><small style="font-weight:400;opacity:0.7">index_v2.jsx</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box new-box">Export button<br><small style="font-weight:400">added to header</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box new-box">ExportModal.jsx<br><small style="font-weight:400">PDF / Excel choice</small></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box new-box">exportUtils.js<br><small style="font-weight:400">exportPDF() / exportExcel()</small></div>
+</div>
+
+<table>
+  <thead><tr><th>File</th><th>Type</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td><code>frontend/src/utils/exportUtils.js</code></td><td>New</td><td>All export logic — <code>exportPDF()</code> and <code>exportExcel(bids)</code></td></tr>
+    <tr><td><code>frontend/src/components/BidQueue/ExportModal.jsx</code></td><td>New</td><td>Modal UI — two buttons (PDF / Excel), cancel, keyboard close</td></tr>
+    <tr><td><code>frontend/src/components/BidQueue/index_v2.jsx</code></td><td>New (v2)</td><td>Copy of <code>index.jsx</code> with 4 additions: import, state, button, modal JSX</td></tr>
+    <tr><td><code>frontend/src/App.jsx</code></td><td>Edit 1 line</td><td>Change import from <code>index</code> to <code>index_v2</code> to activate</td></tr>
+  </tbody>
+</table>
+
+<!-- 3. FILES IN DETAIL -->
+<h1>3. Files in Detail</h1>
+
+<!-- exportUtils.js -->
+<div class="file-card new-file">
+  <div class="file-card-header">
+    <span class="file-tag tag-new">New file</span>
+    <span class="file-path">frontend/src/utils/exportUtils.js</span>
+    <span class="file-desc">Export logic</span>
+  </div>
+  <div class="file-card-body">
+    <p>Contains two exported functions. Both are called by <code>ExportModal.jsx</code>.</p>
+
+    <h3>exportPDF()</h3>
+    <p>Calls <code>window.print()</code>. The browser opens its print dialog where the user selects "Save as PDF". The <code>@media print</code> CSS (if added) can hide buttons and adjust layout.</p>
+    <pre><span class="c-keyword">export function</span> <span class="c-fn">exportPDF</span>() {
+  window.<span class="c-fn">print</span>()
+}</pre>
+
+    <h3>exportExcel(bids)</h3>
+    <p>Builds a <strong>SpreadsheetML XML string</strong> in memory, wraps it in a <code>Blob</code>, creates an object URL, and triggers a download. No npm package, no server round-trip.</p>
+
+    <p>The file has <strong>4 sheets</strong>:</p>
+    <div class="sheet-grid">
+      <div class="sheet-card">
+        <div class="sheet-name">Sheet 1 — Summary</div>
+        <div class="sheet-desc">KPI row (Total Bids, Avg Response, Overdue, At Risk, Awarded) + Status breakdown table + Segment breakdown table</div>
+      </div>
+      <div class="sheet-card">
+        <div class="sheet-name">Sheet 2 — All Bids</div>
+        <div class="sheet-desc">All visible bids with columns: Customer, Bid ID, Segment, OpCo, Status, Response %, Internal Due, Compliance. Alternating row shading. Red/amber/green colour on response and due date cells.</div>
+      </div>
+      <div class="sheet-card">
+        <div class="sheet-name">Sheet 3 — Overdue &amp; At Risk</div>
+        <div class="sheet-desc">Only bids due within 7 days or with status "At Risk", sorted by urgency (most overdue first). Same colour coding.</div>
+      </div>
+      <div class="sheet-card">
+        <div class="sheet-name">Sheet 4 — Compliance Matrix</div>
+        <div class="sheet-desc">Bids as rows, compliance tags (CN, Buy America, PFS, Halal, Kosher, Vegan, SOX) as columns. ✓ in green where the bid has that tag, — in light grey where it does not.</div>
+      </div>
+    </div>
+
+    <p>The download filename is auto-generated: <code>Sysco_Bid_Pipeline_Jul2026.xls</code></p>
+  </div>
+</div>
+
+<!-- ExportModal.jsx -->
+<div class="file-card new-file">
+  <div class="file-card-header">
+    <span class="file-tag tag-new">New file</span>
+    <span class="file-path">frontend/src/components/BidQueue/ExportModal.jsx</span>
+    <span class="file-desc">Modal UI component</span>
+  </div>
+  <div class="file-card-body">
+    <p>A focused React component. Receives four props:</p>
+    <table>
+      <thead><tr><th>Prop</th><th>Type</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>open</code></td><td>boolean</td><td>Controls visibility</td></tr>
+        <tr><td><code>onClose</code></td><td>function</td><td>Called when user dismisses</td></tr>
+        <tr><td><code>bids</code></td><td>Array</td><td>The bids to export (already filtered)</td></tr>
+        <tr><td><code>onToast</code></td><td>function</td><td>Shows a toast message after export starts</td></tr>
+      </tbody>
+    </table>
+
+    <p>Behaviour:</p>
+    <ul>
+      <li>Renders <code>null</code> when <code>open</code> is false (no DOM cost)</li>
+      <li>Closes on <kbd>Escape</kbd> key or clicking the backdrop</li>
+      <li>PDF button: closes modal → waits 200 ms → calls <code>exportPDF()</code> (delay lets the modal disappear before the print dialog opens)</li>
+      <li>Excel button: closes modal → calls <code>exportExcel(bids)</code> immediately</li>
+    </ul>
+
+    <pre><span class="c-import">import</span> { exportPDF, exportExcel } <span class="c-import">from</span> <span class="c-string">'../../utils/exportUtils'</span>
+
+<span class="c-keyword">export default function</span> <span class="c-fn">ExportModal</span>({ open, onClose, bids, onToast }) {
+  <span class="c-comment">// Escape key closes modal</span>
+  <span class="c-fn">useEffect</span>(() => {
+    <span class="c-keyword">if</span> (!open) <span class="c-keyword">return</span>
+    <span class="c-keyword">const</span> handler = e => { <span class="c-keyword">if</span> (e.key === <span class="c-string">'Escape'</span>) onClose() }
+    window.<span class="c-fn">addEventListener</span>(<span class="c-string">'keydown'</span>, handler)
+    <span class="c-keyword">return</span> () => window.<span class="c-fn">removeEventListener</span>(<span class="c-string">'keydown'</span>, handler)
+  }, [open, onClose])
+
+  <span class="c-keyword">if</span> (!open) <span class="c-keyword">return null</span>
+  <span class="c-comment">// ... modal JSX with PDF / Excel buttons</span>
+}</pre>
+  </div>
+</div>
+
+<!-- index_v2.jsx -->
+<div class="file-card edit-file">
+  <div class="file-card-header">
+    <span class="file-tag tag-edit">New v2</span>
+    <span class="file-path">frontend/src/components/BidQueue/index_v2.jsx</span>
+    <span class="file-desc">Copy of index.jsx + 4 additions</span>
+  </div>
+  <div class="file-card-body">
+    <p>The original <code>index.jsx</code> is untouched. <code>index_v2.jsx</code> is an exact copy with these four additions:</p>
+
+    <h3>Change 1 — Line 1–3: Imports</h3>
+    <div class="diff">
+      <div class="diff-header">index_v2.jsx — top of file</div>
+      <div class="diff-body">
+        <div class="diff-line diff-rem"><span class="diff-ln">1</span><span style="color:#B91C1C">- import React, { useState, useMemo, useEffect, useRef } from 'react'</span></div>
+        <div class="diff-line diff-rem"><span class="diff-ln">2</span><span style="color:#B91C1C">- import { Search, LayoutGrid, List, ChevronDown, Filter, Brain, ChevronUp, Cloud, CheckCircle, Upload, Plus } from 'lucide-react'</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">1</span><span>+ import React, { useState, useMemo, useEffect, useRef, <strong>useCallback</strong> } from 'react'</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">2</span><span>+ import { Search, LayoutGrid, List, ChevronDown, Filter, Brain, ChevronUp, Cloud, CheckCircle, Upload, Plus, <strong>Download</strong> } from 'lucide-react'</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">3</span><span>+ <strong>import ExportModal from './ExportModal'</strong></span></div>
+      </div>
+    </div>
+
+    <h3>Change 2 — ~Line 290: Export state (inside BidQueue component)</h3>
+    <div class="diff">
+      <div class="diff-header">index_v2.jsx — inside BidQueue(), after deleteToast state</div>
+      <div class="diff-body">
+        <div class="diff-line diff-ctx"><span class="diff-ln">288</span>  const [deleteToast, setDeleteToast] = useState(null)</div>
+        <div class="diff-line diff-ctx"><span class="diff-ln">289</span>  const toastShownRef = useRef(false)</div>
+        <div class="diff-line diff-add"><span class="diff-ln">291</span><span>+  // ── Export ──</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">292</span><span>+  const [showExport, setShowExport] = useState(false)</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">293</span><span>+  const [exportToast, setExportToast] = useState(null)</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">294</span><span>+  const showExportToast = useCallback(msg => {</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">295</span><span>+    setExportToast(msg)</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">296</span><span>+    setTimeout(() => setExportToast(null), 3500)</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">297</span><span>+  }, [])</span></div>
+      </div>
+    </div>
+
+    <h3>Change 3 — ~Line 320: Export button in page header</h3>
+    <div class="diff">
+      <div class="diff-header">index_v2.jsx — inside the page header &lt;div className="flex items-center gap-3"&gt;</div>
+      <div class="diff-body">
+        <div class="diff-line diff-ctx"><span class="diff-ln">318</span>          &lt;span className="text-xs bg-gray-100 …"&gt;</div>
+        <div class="diff-line diff-ctx"><span class="diff-ln">319</span>            {new Date().toLocaleDateString(…)}</div>
+        <div class="diff-line diff-ctx"><span class="diff-ln">320</span>          &lt;/span&gt;</div>
+        <div class="diff-line diff-add"><span class="diff-ln">321</span><span>+         &lt;button onClick={() =&gt; setShowExport(true)}</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">322</span><span>+           className="inline-flex items-center gap-2 px-4 py-2 bg-exl-navy text-white</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">323</span><span>+                      text-sm font-semibold rounded-lg hover:bg-exl-navy/90 …"&gt;</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">324</span><span>+           &lt;Download className="w-4 h-4" /&gt; Export</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">325</span><span>+         &lt;/button&gt;</span></div>
+      </div>
+    </div>
+
+    <h3>Change 4 — End of return(): Modal + export toast JSX</h3>
+    <div class="diff">
+      <div class="diff-header">index_v2.jsx — just before closing &lt;/div&gt; of return</div>
+      <div class="diff-body">
+        <div class="diff-line diff-ctx"><span class="diff-ln">497</span>      {/* ── Delete toast ── */}</div>
+        <div class="diff-line diff-ctx"><span class="diff-ln">498</span>      {deleteToast && &lt;DeleteToast … /&gt;}</div>
+        <div class="diff-line diff-add"><span class="diff-ln">500</span><span>+     {/* ── Export modal ── */}</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">501</span><span>+     &lt;ExportModal open={showExport} onClose={() =&gt; setShowExport(false)}</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">502</span><span>+       bids={filtered} onToast={showExportToast} /&gt;</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">504</span><span>+     {/* ── Export toast ── */}</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">505</span><span>+     {exportToast && (</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">506</span><span>+       &lt;div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 …"&gt;</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">507</span><span>+         &lt;CheckCircle className="w-4 h-4 text-emerald-400" /&gt; {exportToast}</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">508</span><span>+       &lt;/div&gt;)}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- App.jsx activation -->
+<div class="file-card activate">
+  <div class="file-card-header">
+    <span class="file-tag tag-activate">Edit 1 line</span>
+    <span class="file-path">frontend/src/App.jsx</span>
+    <span class="file-desc">Activation step</span>
+  </div>
+  <div class="file-card-body">
+    <p>Only one line changes in <code>App.jsx</code> to activate the feature:</p>
+    <div class="diff">
+      <div class="diff-header">frontend/src/App.jsx — line 5</div>
+      <div class="diff-body">
+        <div class="diff-line diff-rem"><span class="diff-ln">5</span><span style="color:#B91C1C">- import BidQueue from './components/BidQueue/index.jsx'</span></div>
+        <div class="diff-line diff-add"><span class="diff-ln">5</span><span>+ import BidQueue from './components/BidQueue/index_v2.jsx'</span></div>
+      </div>
+    </div>
+    <div class="tip-box">
+      To roll back, revert this one line. The original <code>index.jsx</code> and all existing functionality are completely unchanged.
+    </div>
+  </div>
+</div>
+
+<!-- 4. HOW TO TEST -->
+<h1>4. How to Test</h1>
+
+<h2>Start the app</h2>
+<pre><span class="c-comment"># Make sure App.jsx imports index_v2</span>
+<span class="c-keyword">cd</span> frontend
+npm run dev</pre>
+
+<h2>Test PDF export</h2>
+<ol>
+  <li>Open <code>http://localhost:5173</code></li>
+  <li>Click <strong>Export</strong> button (top-right of Bid Queue, next to the date pill)</li>
+  <li>Modal appears — click <strong>PDF</strong></li>
+  <li>Browser print dialog opens. Select a printer or "Save as PDF"</li>
+  <li>Toast message: <em>"Print dialog opened — choose Save as PDF"</em></li>
+</ol>
+
+<h2>Test Excel export</h2>
+<ol>
+  <li>Optionally filter to a segment (e.g. Healthcare) — export only exports visible bids</li>
+  <li>Click <strong>Export</strong> → <strong>Excel</strong></li>
+  <li>File downloads immediately: <code>Sysco_Bid_Pipeline_Jul2026.xls</code></li>
+  <li>Open in Excel / Google Sheets — verify 4 sheets: Summary, All Bids, Overdue and At Risk, Compliance Matrix</li>
+  <li>Toast message: <em>"Excel downloaded — N bids, 4 sheets"</em></li>
+</ol>
+
+<h2>Test modal behaviour</h2>
+<ul>
+  <li>Press <kbd>Escape</kbd> while modal is open — modal closes</li>
+  <li>Click the dark backdrop behind the modal — modal closes</li>
+  <li>Click the × button — modal closes</li>
+</ul>
+
+<!-- 5. SUMMARY TABLE -->
+<h1>5. Complete Change Summary</h1>
+
+<ul class="checklist">
+  <li>
+    <span class="check-icon">✓</span>
+    <div>
+      <div class="check-file">frontend/src/utils/exportUtils.js</div>
+      <div class="check-note">New file — <code>exportPDF()</code> and <code>exportExcel(bids)</code>. No external library. SpreadsheetML for Excel.</div>
+    </div>
+  </li>
+  <li>
+    <span class="check-icon">✓</span>
+    <div>
+      <div class="check-file">frontend/src/components/BidQueue/ExportModal.jsx</div>
+      <div class="check-note">New file — modal with PDF / Excel buttons, Escape-to-close, backdrop-click-to-close.</div>
+    </div>
+  </li>
+  <li>
+    <span class="check-icon">✓</span>
+    <div>
+      <div class="check-file">frontend/src/components/BidQueue/index_v2.jsx</div>
+      <div class="check-note">New v2 file — copy of index.jsx with 4 additions: import, state, Export button, modal JSX.</div>
+    </div>
+  </li>
+  <li>
+    <span class="check-icon">✓</span>
+    <div>
+      <div class="check-file">frontend/src/App.jsx (1 line)</div>
+      <div class="check-note">Change import from <code>index.jsx</code> → <code>index_v2.jsx</code> to activate. Revert to roll back.</div>
+    </div>
+  </li>
+</ul>
+
+<div class="info-box">
+  <strong>Original index.jsx is untouched.</strong> Following the project's <em>_v2 file convention</em>, new behaviour is added in <code>index_v2.jsx</code> without modifying the running original. Swap the import in <code>App.jsx</code> to activate; swap it back to roll back.
+</div>
+
+<!-- FOOTER -->
+<hr style="margin-top:48px; border:none; border-top:1px solid #E2E8F0;"/>
+<p style="font-size:8.5pt; color:#94A3B8; margin-top:12px; text-align:center;">
+  Sysco RFP AIQ · Export Feature Implementation Guide · July 15, 2026 · Confidential — Internal Use Only
+</p>
+
+</div>
+</body>
+</html>
