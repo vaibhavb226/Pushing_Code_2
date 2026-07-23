@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sysco RFP AIQ — Bid Flow Diagram v11</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI', system-ui, -apple-system, sans-serif; background:#e9edf3; padding:20px;
+         display:flex; flex-direction:column; align-items:center; -webkit-font-smoothing:antialiased; color:#1f2a37; }
+  .scroll { width:100%; overflow-x:auto; display:flex; justify-content:center; }
+
+  .pagehead { width:1400px; display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .brand { display:flex; align-items:center; gap:11px; }
+  .logo { width:30px; height:30px; border-radius:8px; background:linear-gradient(145deg,#ea6a2e,#d9531c);
+          display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:15px; box-shadow:0 4px 12px rgba(217,83,28,.35); }
+  .h-title { font-weight:800; font-size:17px; letter-spacing:-.01em; color:#0f172a; }
+  .h-sub { font-size:10.5px; color:#8a94a4; margin-left:12px; }
+  .confidential { display:flex; align-items:center; gap:7px; padding:6px 12px; border-radius:8px; background:rgba(217,83,28,.09); border:1px solid rgba(217,83,28,.3); }
+  .confidential span:first-child { width:6px; height:6px; border-radius:50%; background:#d9531c; box-shadow:0 0 0 3px rgba(217,83,28,.18); }
+  .confidential span:last-child { font-size:10px; font-weight:700; letter-spacing:.1em; color:#c2461a; }
+
+  .canvas { position:relative; width:1400px; height:772px; background:#f8fafc;
+    background-image:radial-gradient(circle at 1px 1px, rgba(15,23,42,.045) 1px, transparent 0); background-size:24px 24px;
+    border-radius:18px; border:1px solid rgba(15,23,42,.07);
+    box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 14px 46px rgba(15,23,42,.16); overflow:hidden; flex-shrink:0; }
+
+  svg.wires { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:2; }
+
+  /* stage (journey) header */
+  .stage { position:absolute; top:14px; height:34px; display:flex; align-items:center; justify-content:center;
+           font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#64748b; }
+  .stage b { color:#0f2137; }
+  .stage-div { position:absolute; top:52px; width:1px; background:repeating-linear-gradient(#cbd3de 0 4px, transparent 4px 8px); }
+
+  /* swimlanes */
+  .lane { position:absolute; left:0; right:0; z-index:0; }
+  .lane.alt { background:rgba(15,23,42,.025); }
+  .lane-tab { position:absolute; left:12px; display:flex; align-items:center; gap:8px; transform:rotate(-90deg); transform-origin:left center; }
+  .lane-tab .dot { width:8px; height:8px; border-radius:2px; }
+  .lane-tab span { font-size:9px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#8593a6; white-space:nowrap; }
+  .lane-rule { position:absolute; left:0; right:0; height:1px; background:#e5eaf0; }
+
+  .ic { width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .ic.fill { fill:currentColor; stroke:none; }
+
+  /* Terminator (start / end) — activity/flowchart */
+  .term { position:absolute; z-index:3; border-radius:999px; background:linear-gradient(180deg,#334155,#1f2a37); color:#fff;
+          display:flex; align-items:center; justify-content:center; gap:7px; font-size:10.5px; font-weight:700; text-align:center; padding:0 14px;
+          box-shadow:0 3px 10px rgba(15,33,55,.3); }
+  .term .ic { width:15px; height:15px; color:#fff; }
+
+  /* Process / Action box */
+  .proc { position:absolute; z-index:3; background:#fff; border:1px solid #d7dde6; border-top:3px solid var(--ac); border-radius:10px;
+          box-shadow:0 2px 8px rgba(16,24,40,.07); display:flex; align-items:center; gap:9px; padding:0 12px; }
+  .proc.ai { border:1.5px solid var(--ac); box-shadow:0 3px 12px color-mix(in srgb, var(--ac) 20%, transparent); }
+  .p-ic { width:30px; height:30px; border-radius:8px; background:color-mix(in srgb, var(--ac) 13%, #fff); color:var(--ac);
+          display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .p-t { font-size:10.5px; font-weight:700; color:#1f2a37; line-height:1.18; }
+  .p-s { font-size:8.5px; color:#7a8698; margin-top:1px; }
+
+  /* Decision diamond */
+  .decision { position:absolute; z-index:3; }
+  .decision .dia { position:absolute; inset:0; background:#e0662b; clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%); }
+  .decision .dia-in { position:absolute; inset:2.5px; background:#fff7ed; clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+                      display:flex; align-items:center; justify-content:center; text-align:center; padding:0 30px;
+                      font-size:9.5px; font-weight:800; color:#b4531f; line-height:1.2; }
+
+  /* DFD data store (open rectangle + cylinder icon) */
+  .store { position:absolute; z-index:3; background:#eef4fe; border-top:2px solid #1a73e8; border-bottom:2px solid #1a73e8;
+           display:flex; align-items:center; gap:9px; padding:0 12px; box-shadow:0 1px 4px rgba(26,115,232,.1); }
+  .store .p-ic { --ac:#1a73e8; background:#dbe8fd; color:#1a73e8; }
+  .store .p-t { color:#154a94; }
+
+  /* External service (LLM) */
+  .svc { position:absolute; z-index:3; background:#fff4ec; border:1px dashed #ea9e6e; border-radius:10px;
+         display:flex; align-items:center; gap:9px; padding:0 12px; box-shadow:0 1px 4px rgba(217,83,28,.08); }
+  .svc .p-ic { --ac:#d9531c; background:#fde6d6; color:#d9531c; }
+
+  /* connector labels (named data flows) */
+  .wtag { position:absolute; z-index:4; transform:translate(-50%,-50%); background:#fff; border:1px solid #d7dde6; border-radius:20px;
+          padding:2px 8px; font-size:8px; font-weight:700; color:#475569; box-shadow:0 1px 3px rgba(16,24,40,.08); white-space:nowrap; }
+  .wtag.data { color:#1d6fd6; border-color:#c2d8f5; }
+  .yn { position:absolute; z-index:4; transform:translate(-50%,-50%); font-size:8.5px; font-weight:800; padding:1px 6px; border-radius:5px; }
+  .yn.no { background:#fee2e2; color:#c02626; }
+  .yn.yes { background:#dcfce7; color:#15803d; }
+
+  /* legend */
+  .legend { position:absolute; left:0; right:0; bottom:0; height:52px; z-index:4; padding:0 20px;
+            display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap;
+            background:rgba(255,255,255,.85); border-top:1px solid #e2e8f0; backdrop-filter:blur(3px); }
+  .lg { display:flex; align-items:center; gap:7px; font-size:9px; font-weight:600; color:#64748b; }
+  .lg .shape { width:26px; height:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .term-mini { width:26px; height:14px; border-radius:999px; background:#334155; }
+  .proc-mini { width:24px; height:15px; border-radius:4px; background:#fff; border:1px solid #cbd3de; border-top:2px solid #1d6fd6; }
+  .dia-mini { width:16px; height:16px; background:#fff7ed; border:1.5px solid #e0662b; transform:rotate(45deg); }
+  .store-mini { width:24px; height:13px; background:#eef4fe; border-top:2px solid #1a73e8; border-bottom:2px solid #1a73e8; }
+  .lg .blend { font-weight:700; color:#0f2137; }
+</style>
+</head>
+<body>
+
+<div class="pagehead">
+  <div class="brand">
+    <div class="logo">A</div>
+    <div>
+      <span class="h-title">SYSCO RFP AIQ — BID FLOW</span>
+      <span class="h-sub">How a bid moves through the platform — from customer request to awarded supplier</span>
+    </div>
+  </div>
+  <div class="confidential"><span></span><span>CONFIDENTIAL</span></div>
+</div>
+
+<div class="scroll">
+<div class="canvas">
+
+  <!-- ICON LIBRARY -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c0-3.7 2.9-6 6.5-6s6.5 2.3 6.5 6"/></symbol>
+      <symbol id="i-supplier" viewBox="0 0 24 24"><path d="M3 21V9l6 3V9l6 3.2V6h5v15z"/><path d="M2 21h20"/><path d="M6.5 16h2M11.5 16h2M16.5 16h2"/></symbol>
+      <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.4 2.4 4.6-5.3"/></symbol>
+      <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 2.5h7.5L18 7v14.5H6z"/><path d="M13.5 2.5V7H18"/><path d="M9 12h6M9 15.5h6"/></symbol>
+      <symbol id="i-ai" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2.4"/><circle cx="12" cy="12" r="2.4"/><path d="M9.5 3v3.5M14.5 3v3.5M9.5 17.5V21M14.5 17.5V21M3 9.5h3.5M3 14.5h3.5M17.5 9.5H21M17.5 14.5H21"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 4H4a1.5 1.5 0 0 0-1.5 1.5v9A1.5 1.5 0 0 0 4 16h3v4l4.2-4H20a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 20 4z"/><path d="M7 9h10M7 12h6"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.2"/><path d="M3.6 6.5 12 12.8l8.4-6.3"/></symbol>
+      <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 13l3.5-8h11L21 13v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/><path d="M12 16V4M7.5 8.5 12 4l4.5 4.5"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 4v16h16"/><rect x="7.5" y="12" width="2.6" height="5"/><rect x="12" y="8" width="2.6" height="9"/><rect x="16.5" y="14" width="2.6" height="3"/></symbol>
+      <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
+      <symbol id="i-storage" viewBox="0 0 24 24"><path d="M5.2 7.5h13.6l-1.2 12a1 1 0 0 1-1 .9H7.4a1 1 0 0 1-1-.9z"/><ellipse cx="12" cy="7.2" rx="6.8" ry="2.2"/></symbol>
+      <symbol id="i-llm" viewBox="0 0 24 24"><path d="M11.5 3l1.9 4.9 4.9 1.6-4.9 1.9L11.5 16l-1.9-4.6L4.7 9.5l4.9-1.6z"/><path d="M18 15l.9 2.4 2.4.9-2.4.9L18 21.5l-.9-2.3-2.4-.9 2.4-.9z"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3L3 10.5l6.5 2.5L12 20l3-7z"/><path d="M21 3 12 13"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20.5 11a8.5 8.5 0 1 0-.9 4.2"/><path d="M20.5 4.5V11h-6.5"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- STAGE (JOURNEY) HEADERS -->
+  <div class="stage" style="left:160px; width:245px;"><span><b>1</b>&nbsp;· Intake</span></div>
+  <div class="stage" style="left:405px; width:245px;"><span><b>2</b>&nbsp;· Solicit</span></div>
+  <div class="stage" style="left:650px; width:245px;"><span><b>3</b>&nbsp;· Collect</span></div>
+  <div class="stage" style="left:895px; width:245px;"><span><b>4</b>&nbsp;· Evaluate</span></div>
+  <div class="stage" style="left:1140px; width:248px;"><span><b>5</b>&nbsp;· Decide</span></div>
+  <div class="stage-div" style="left:405px; height:672px;"></div>
+  <div class="stage-div" style="left:650px; height:672px;"></div>
+  <div class="stage-div" style="left:895px; height:672px;"></div>
+  <div class="stage-div" style="left:1140px; height:672px;"></div>
+
+  <!-- SWIMLANES -->
+  <div class="lane" style="top:96px; height:140px;"></div>
+  <div class="lane alt" style="top:236px; height:238px;"></div>
+  <div class="lane" style="top:474px; height:140px;"></div>
+  <div class="lane alt" style="top:614px; height:146px;"></div>
+  <div class="lane-rule" style="top:236px;"></div>
+  <div class="lane-rule" style="top:474px;"></div>
+  <div class="lane-rule" style="top:614px;"></div>
+
+  <div class="lane-tab" style="left:20px; top:166px;"><span class="dot" style="background:#475569;"></span><span>Bid COE Team</span></div>
+  <div class="lane-tab" style="left:20px; top:355px;"><span class="dot" style="background:#1d6fd6;"></span><span>RFP AIQ Platform</span></div>
+  <div class="lane-tab" style="left:20px; top:544px;"><span class="dot" style="background:#0f9d78;"></span><span>Suppliers</span></div>
+  <div class="lane-tab" style="left:20px; top:687px;"><span class="dot" style="background:#1a73e8;"></span><span>Data &amp; Cloud</span></div>
+
+  <!-- ══════════ CONNECTOR WIRES ══════════ -->
+  <svg class="wires">
+    <defs>
+      <marker id="arw" markerWidth="10" markerHeight="8" refX="7.5" refY="4" orient="auto"><path d="M0 0L9 4L0 8z" fill="#8b97a8"/></marker>
+      <marker id="arw-r" markerWidth="10" markerHeight="8" refX="7.5" refY="4" orient="auto"><path d="M0 0L9 4L0 8z" fill="#94a3b8"/></marker>
+      <marker id="arw2" markerWidth="10" markerHeight="8" refX="7.5" refY="4" orient="auto-start-reverse"><path d="M0 0L9 4L0 8z" fill="#7c3aed"/></marker>
+    </defs>
+    <!-- start -> upload -->
+    <line x1="288" y1="167" x2="300" y2="167" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- upload -> parse (RFP file) -->
+    <line x1="366" y1="190" x2="367" y2="284" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- parse -> solicit (bid ready) -->
+    <line x1="444" y1="311" x2="486" y2="311" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- parse -> Bids DB (line items) -->
+    <polyline points="367,336 367,632 430,632 430,646" fill="none" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- solicit -> receive (bid request) -->
+    <line x1="564" y1="336" x2="563" y2="518" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- submit -> capture (quote file, up) -->
+    <line x1="773" y1="516" x2="776" y2="338" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- capture -> Document Store (quote doc) -->
+    <polyline points="762,336 762,356 665,356 665,646" fill="none" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- capture -> pricing (quote) -->
+    <line x1="852" y1="311" x2="938" y2="311" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- pricing -> Vertex (AI call) -->
+    <line x1="1004" y1="336" x2="1004" y2="646" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- pricing -> store (scores write) -->
+    <polyline points="960,336 960,624 500,624 500,646" fill="none" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- pricing -> decision (evaluated) -->
+    <polyline points="1106,320 1199,320 1199,300" fill="none" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- decision YES -> review -->
+    <line x1="1199" y1="214" x2="1199" y2="190" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- decision NO -> Supplier Submit Response (follow-up loop) -->
+    <polyline points="1105,257 900,257 900,540 860,540" fill="none" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- Chat AIQ <-> Bid Records (ask any stage, bidirectional) -->
+    <line x1="580" y1="192" x2="580" y2="646" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 3" marker-start="url(#arw2)" marker-end="url(#arw2)"/>
+    <!-- review -> end (award) -->
+    <line x1="1278" y1="167" x2="1292" y2="167" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+  </svg>
+
+  <!-- ══════════ FLOW LABELS (named data) ══════════ -->
+  <div class="wtag data" style="left:398px;top:238px;">RFP file</div>
+  <div class="wtag" style="left:465px;top:300px;">bid ready</div>
+  <div class="wtag data" style="left:398px;top:470px;">line items</div>
+  <div class="wtag data" style="left:600px;top:430px;">bid request</div>
+  <div class="wtag data" style="left:828px;top:430px;">quote file</div>
+  <div class="wtag data" style="left:665px;top:500px;">quote doc</div>
+  <div class="wtag" style="left:895px;top:300px;">quote</div>
+  <div class="wtag data" style="left:1004px;top:475px;">AI call</div>
+  <div class="wtag" style="left:1160px;top:320px;">evaluated</div>
+  <div class="yn no" style="left:1005px;top:257px;">No</div>
+  <div class="yn yes" style="left:1230px;top:202px;">Yes</div>
+  <div class="wtag" style="left:900px;top:410px;">follow-up</div>
+  <div class="wtag data" style="left:760px;top:612px;">scores (write)</div>
+  <div class="wtag" style="left:580px;top:216px;color:#7c3aed;border-color:#d3c4f2;">ask · any stage</div>
+
+  <!-- ══════════ LANE A · BID COE TEAM ══════════ -->
+  <div class="term" style="left:170px;top:146px;width:118px;height:42px;">
+    <svg class="ic"><use href="#i-flag"/></svg>New RFP received
+  </div>
+  <div class="proc" style="left:300px;top:144px;width:126px;height:46px;--ac:#475569;">
+    <div class="p-ic"><svg class="ic"><use href="#i-upload"/></svg></div>
+    <div><div class="p-t">Upload RFP</div><div class="p-s">PDF · Excel</div></div>
+  </div>
+  <!-- Chat AIQ — cross-cutting: Sysco can ask at any stage -->
+  <div class="proc" style="left:560px;top:144px;width:230px;height:46px;--ac:#7c3aed;border:1.5px dashed #7c3aed;box-shadow:0 3px 12px rgba(124,58,237,.2);">
+    <div class="p-ic"><svg class="ic"><use href="#i-chat"/></svg></div>
+    <div><div class="p-t">Chat AIQ &nbsp;<span style="font-size:7.5px;font-weight:800;color:#7c3aed;background:#f2ecfb;border:1px solid #d3c4f2;border-radius:20px;padding:1px 6px;letter-spacing:.05em;">ANY STAGE</span></div><div class="p-s">Sysco asks in plain English → answers from records</div></div>
+  </div>
+  <div class="proc" style="left:1120px;top:144px;width:158px;height:46px;--ac:#475569;">
+    <div class="p-ic"><svg class="ic"><use href="#i-check"/></svg></div>
+    <div><div class="p-t">Review</div><div class="p-s">Check priced results</div></div>
+  </div>
+  <div class="term" style="left:1292px;top:146px;width:96px;height:42px;background:linear-gradient(180deg,#12b886,#0f9d78);">
+    <svg class="ic"><use href="#i-check"/></svg>Award
+  </div>
+
+  <!-- Decision diamond — below Review -->
+  <div class="decision" style="left:1105px;top:214px;width:188px;height:86px;">
+    <div class="dia"></div>
+    <div class="dia-in">Quote complete &amp; compliant?</div>
+  </div>
+
+  <!-- ══════════ LANE B · RFP AIQ PLATFORM ══════════ -->
+  <div class="proc ai" style="left:292px;top:286px;width:150px;height:50px;--ac:#e0662b;">
+    <div class="p-ic"><svg class="ic"><use href="#i-doc"/></svg></div>
+    <div><div class="p-t">Document Parsing</div><div class="p-s">Parse RFP → line items</div></div>
+  </div>
+  <div class="proc" style="left:486px;top:286px;width:156px;height:50px;--ac:#0f9d78;">
+    <div class="p-ic"><svg class="ic"><use href="#i-send"/></svg></div>
+    <div><div class="p-t">Send Solicitations</div><div class="p-s">Microsoft 365</div></div>
+  </div>
+  <div class="proc" style="left:700px;top:286px;width:152px;height:50px;--ac:#7c3aed;">
+    <div class="p-ic"><svg class="ic"><use href="#i-refresh"/></svg></div>
+    <div><div class="p-t">Capture &amp; Match</div><div class="p-s">Email poller</div></div>
+  </div>
+  <div class="proc ai" style="left:940px;top:286px;width:166px;height:50px;--ac:#e0662b;">
+    <div class="p-ic"><svg class="ic"><use href="#i-chart"/></svg></div>
+    <div><div class="p-t">Pricing &amp; Response AI</div><div class="p-s">Extract · match · score</div></div>
+  </div>
+
+  <!-- ══════════ LANE C · SUPPLIERS ══════════ -->
+  <div class="proc" style="left:475px;top:516px;width:175px;height:54px;--ac:#0f9d78;">
+    <div class="p-ic"><svg class="ic"><use href="#i-inbox"/></svg></div>
+    <div><div class="p-t">Suppliers Receive Request</div><div class="p-s">Email · portal link</div></div>
+  </div>
+  <div class="proc" style="left:685px;top:516px;width:175px;height:54px;--ac:#0f9d78;">
+    <div class="p-ic"><svg class="ic"><use href="#i-upload"/></svg></div>
+    <div><div class="p-t">Supplier Submit Response</div><div class="p-s">Public portal · no login</div></div>
+  </div>
+
+  <!-- Suppliers connector — grey, Receive Request across into Submit Response (no label) -->
+  <svg style="position:absolute; left:470px; top:570px; z-index:3; overflow:visible;" width="400" height="30">
+    <defs>
+      <marker id="arw-supp" markerWidth="10" markerHeight="8" refX="7.5" refY="4" orient="auto"><path d="M0 0L9 4L0 8z" fill="#8b97a8"/></marker>
+    </defs>
+    <polyline points="93,0 93,20 303,20 303,1" fill="none" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw-supp)"/>
+  </svg>
+
+  <!-- ══════════ LANE D · DATA & CLOUD (DFD store + service) ══════════ -->
+  <div class="store" style="left:400px;top:648px;width:320px;height:52px;">
+    <div class="p-ic"><svg class="ic"><use href="#i-db"/></svg></div>
+    <div><div class="p-t">Bid Records &amp; Documents</div><div class="p-s">Cloud SQL · Cloud Storage</div></div>
+  </div>
+  <div class="svc" style="left:922px;top:648px;width:180px;height:52px;">
+    <div class="p-ic"><svg class="ic"><use href="#i-llm"/></svg></div>
+    <div><div class="p-t">Vertex AI · LLM</div><div class="p-s">used by BEX &amp; Response AI</div></div>
+  </div>
+
+</div><!-- /canvas -->
+</div><!-- /scroll -->
+
+</body>
+</html>
