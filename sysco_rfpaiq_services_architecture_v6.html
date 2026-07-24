@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sysco RFP AIQ — Services Architecture (Linked)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI', Arial, Helvetica, sans-serif; background:#eef1f6; color:#1f2a37;
+         padding:22px; display:flex; flex-direction:column; align-items:center; -webkit-font-smoothing:antialiased; }
+  .scroll { width:100%; overflow-x:auto; display:flex; justify-content:center; }
+
+  .head { width:1460px; max-width:100%; display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .head .brand { display:flex; align-items:center; gap:12px; }
+  .head .logo { width:32px; height:32px; border-radius:9px; background:linear-gradient(145deg,#ea6a2e,#d9531c); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:16px; }
+  .head .t { font-size:18px; font-weight:800; color:#0f172a; }
+  .head .t span { display:block; font-size:11.5px; font-weight:600; color:#8a94a4; margin-top:2px; }
+  .head .c { font-size:10px; font-weight:700; letter-spacing:.13em; color:#b0662f; text-transform:uppercase; border:1px solid rgba(176,102,47,.4); border-radius:6px; padding:5px 10px; }
+
+  .canvas { position:relative; width:1460px; height:840px; background:#f8fafc;
+    background-image:radial-gradient(circle at 1px 1px, rgba(15,23,42,.04) 1px, transparent 0); background-size:26px 26px;
+    border-radius:16px; border:1px solid rgba(15,23,42,.07); box-shadow:0 12px 40px rgba(15,23,42,.14); flex-shrink:0; }
+
+  svg.wires { position:absolute; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; }
+
+  /* boundary containers */
+  .zone { position:absolute; z-index:0; border-radius:16px; }
+  .zone.gcp { border:1.6px solid #a9c9f5; background:rgba(66,133,244,.045); }
+  .zone.ce  { border:1.5px dashed #b6c2d4; background:rgba(15,23,42,.02); }
+  .zone.dev { border:1.5px dashed #cbb4f2; background:rgba(124,58,237,.035); }
+  .zone.ext { border:1.5px dashed #d7dde6; background:rgba(15,23,42,.015); }
+  .zone-lbl { position:absolute; z-index:2; font-size:10.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
+
+  /* app / user rectangle box */
+  .box { position:absolute; z-index:3; background:#fff; border:1px solid #d7dde6; border-radius:11px;
+         box-shadow:0 3px 10px rgba(16,24,40,.08); display:flex; align-items:center; gap:11px; padding:0 14px; }
+  .box.flag { border:2px solid #d9531c; box-shadow:0 4px 16px rgba(217,83,28,.2); }
+  .box .b-ic { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .box .b-ic svg { width:19px; height:19px; stroke:#fff; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .box .b-t { font-size:13px; font-weight:800; color:#1f2a37; line-height:1.15; }
+  .box .b-s { font-size:9.5px; color:#7a8698; margin-top:1px; }
+
+  /* hexagon service node */
+  .hex { position:absolute; z-index:3; width:106px; display:flex; flex-direction:column; align-items:center; gap:7px; text-align:center; }
+  .hex .shape { width:58px; height:64px; clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+                display:flex; align-items:center; justify-content:center; box-shadow:0 3px 9px rgba(15,23,42,.18); }
+  .hex .shape svg { width:26px; height:26px; stroke:#fff; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .hex .shape svg.fill { fill:#fff; stroke:none; }
+  .hex .nm { font-size:11px; font-weight:700; color:#28303c; line-height:1.15; }
+  .hex .sb { font-size:8.5px; color:#8a94a4; line-height:1.15; }
+
+  /* arrow labels */
+  .wtag { position:absolute; z-index:4; transform:translate(-50%,-50%); background:#fff; border:1px solid #d7dde6; border-radius:20px;
+          padding:2px 8px; font-size:9px; font-weight:700; color:#42506a; box-shadow:0 1px 3px rgba(16,24,40,.08); white-space:nowrap; }
+
+  .legend { width:1460px; max-width:100%; display:flex; flex-wrap:wrap; gap:12px 20px; margin-top:14px; justify-content:center; }
+  .lg { display:flex; align-items:center; gap:7px; font-size:11px; font-weight:600; color:#5b6472; }
+  .lg .sw { width:14px; height:15px; clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); }
+  .lg .ln { width:26px; height:2px; }
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="brand"><div class="logo">A</div>
+    <div class="t">Sysco RFP AIQ — Services Architecture<span>How the services connect — for IT deployment &amp; network planning</span></div>
+  </div>
+  <div class="c">Confidential</div>
+</div>
+
+<div class="scroll">
+<div class="canvas">
+
+  <!-- ICON DEFS -->
+  <svg width="0" height="0" style="position:absolute"><defs>
+    <symbol id="i-web" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.2"/><path d="M3 9h18"/><circle cx="6" cy="6.5" r=".7" class="fill"/><circle cx="8.3" cy="6.5" r=".7" class="fill"/></symbol>
+    <symbol id="i-portal" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3.2 3.6 3.2 14.4 0 18M12 3c-3.2 3.6-3.2 14.4 0 18"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6M13 4l-2 16"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20.5 11a8.5 8.5 0 1 0-.9 4.2"/><path d="M20.5 4.5V11h-6.5"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="1.6"/><rect x="4" y="13" width="16" height="7" rx="1.6"/><circle cx="8" cy="7.5" r=".8" class="fill"/><circle cx="8" cy="16.5" r=".8" class="fill"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
+    <symbol id="i-storage" viewBox="0 0 24 24"><path d="M5.2 7.5h13.6l-1.2 12a1 1 0 0 1-1 .9H7.4a1 1 0 0 1-1-.9z"/><ellipse cx="12" cy="7.2" rx="6.8" ry="2.2"/></symbol>
+    <symbol id="i-llm" viewBox="0 0 24 24"><path d="M11.5 3l1.9 4.9 4.9 1.6-4.9 1.9L11.5 16l-1.9-4.6L4.7 9.5l4.9-1.6z"/><path d="M18 15l.9 2.4 2.4.9-2.4.9L18 21.5l-.9-2.3-2.4-.9 2.4-.9z"/></symbol>
+    <symbol id="i-ai" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2.4"/><circle cx="12" cy="12" r="2.4"/><path d="M9.5 3v3.5M14.5 3v3.5M9.5 17.5V21M14.5 17.5V21M3 9.5h3.5M3 14.5h3.5M17.5 9.5H21M17.5 14.5H21"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.2"/><path d="M3.6 6.5 12 12.8l8.4-6.3"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5.2c0 4.4-3 7.9-7 9.8-4-1.9-7-5.4-7-9.8V6z"/><path d="M9.4 12l1.8 1.8 3.5-3.9"/></symbol>
+    <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 19a8 8 0 1 1 16 0"/><path d="M12 15l4.5-4.5"/><circle cx="12" cy="19" r="1.2" class="fill"/></symbol>
+    <symbol id="i-build" viewBox="0 0 24 24"><path d="M14.7 6.3a3.5 3.5 0 0 0-4.6 4.2l-6 6 2.1 2.1 6-6a3.5 3.5 0 0 0 4.2-4.6l-2.1 2.1-1.8-1.8z"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></symbol>
+    <symbol id="i-docker" viewBox="0 0 24 24"><rect x="4" y="10" width="3" height="3"/><rect x="8" y="10" width="3" height="3"/><rect x="12" y="10" width="3" height="3"/><rect x="8" y="6" width="3" height="3"/><rect x="12" y="6" width="3" height="3"/><path d="M3 14h15c2 0 3-1 3.5-3 1 .4 1.5 0 2 -.5-.3 2-2 4.5-6 4.5H8c-3 0-5-2-5-5z"/></symbol>
+  </defs></svg>
+
+  <!-- ══ WIRES ══ -->
+  <svg class="wires">
+    <defs>
+      <marker id="a" markerWidth="10" markerHeight="8" refX="7.5" refY="4" orient="auto"><path d="M0 0L9 4L0 8z" fill="#8b97a8"/></marker>
+      <marker id="ad" markerWidth="10" markerHeight="8" refX="7.5" refY="4" orient="auto"><path d="M0 0L9 4L0 8z" fill="#7c3aed"/></marker>
+    </defs>
+
+    <!-- users -> backend -->
+    <line x1="230" y1="275" x2="318" y2="305" stroke="#8b97a8" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="230" y1="425" x2="318" y2="338" stroke="#8b97a8" stroke-width="2" marker-end="url(#a)"/>
+
+    <!-- backend -> GCP data services (middle) -->
+    <line x1="590" y1="300" x2="690" y2="182" stroke="#8b97a8" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="590" y1="318" x2="670" y2="320" stroke="#8b97a8" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="590" y1="336" x2="690" y2="452" stroke="#8b97a8" stroke-width="2" marker-end="url(#a)"/>
+
+    <!-- Cloud IAM -> backend (identity, dashed, top route) -->
+    <polyline points="930,150 930,120 445,120 445,278" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#ad)"/>
+
+    <!-- backend -> Cloud Monitoring (logs, dashed) -->
+    <polyline points="560,358 560,395 828,395 900,335" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#ad)"/>
+
+    <!-- backend -> Microsoft 365 (Graph API): bottom bus then up, stops below the node with a gap -->
+    <polyline points="560,360 560,608 1282,608 1282,258" fill="none" stroke="#8b97a8" stroke-width="2" marker-end="url(#a)"/>
+
+    <!-- devops -> compute engine (deploy) -->
+    <polyline points="600,690 600,660 455,660 455,492" fill="none" stroke="#8b97a8" stroke-width="2" marker-end="url(#a)"/>
+    <!-- jenkins -> terraform -> docker -->
+    <line x1="486" y1="720" x2="542" y2="720" stroke="#8b97a8" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="656" y1="720" x2="712" y2="720" stroke="#8b97a8" stroke-width="2" marker-end="url(#a)"/>
+  </svg>
+
+  <!-- ══ ARROW LABELS ══ -->
+  <div class="wtag" style="left:274px;top:278px;">REST · HTTPS</div>
+  <div class="wtag" style="left:274px;top:388px;">REST · HTTPS</div>
+  <div class="wtag" style="left:635px;top:238px;">SQL r/w</div>
+  <div class="wtag" style="left:632px;top:306px;">files</div>
+  <div class="wtag" style="left:632px;top:404px;">LLM call</div>
+  <div class="wtag" style="left:700px;top:120px;color:#7c3aed;border-color:#d3c4f2;">service-account auth</div>
+  <div class="wtag" style="left:790px;top:395px;color:#7c3aed;border-color:#d3c4f2;">logs · metrics</div>
+  <div class="wtag" style="left:1282px;top:410px;">Graph API · email</div>
+  <div class="wtag" style="left:900px;top:608px;">outbound HTTPS 443</div>
+  <div class="wtag" style="left:530px;top:660px;">deploy</div>
+
+  <!-- ══ BOUNDARY ZONES ══ -->
+  <div class="zone gcp" style="left:250px;top:80px;width:900px;height:560px;"></div>
+  <div class="zone-lbl" style="left:270px;top:92px;color:#1a73e8;">☁ Google Cloud Platform</div>
+
+  <div class="zone ce" style="left:290px;top:212px;width:330px;height:280px;"></div>
+  <div class="zone-lbl" style="left:305px;top:222px;color:#64748b;">Compute Engine</div>
+
+  <div class="zone ext" style="left:1204px;top:114px;width:162px;height:154px;"></div>
+  <div class="zone-lbl" style="left:1216px;top:123px;color:#94a3b8;">External</div>
+
+  <div class="zone dev" style="left:360px;top:678px;width:500px;height:110px;"></div>
+  <div class="zone-lbl" style="left:378px;top:688px;color:#7c3aed;">CI/CD &amp; Infrastructure-as-Code</div>
+
+  <!-- ══ USERS ══ -->
+  <div class="box" style="left:50px;top:240px;width:180px;height:70px;">
+    <div class="b-ic" style="background:linear-gradient(145deg,#5b8def,#3b6fd4);"><svg><use href="#i-web"/></svg></div>
+    <div><div class="b-t">COE Web App</div><div class="b-s">Bid team · React</div></div>
+  </div>
+  <div class="box" style="left:50px;top:390px;width:180px;height:70px;">
+    <div class="b-ic" style="background:linear-gradient(145deg,#12b886,#0f9d78);"><svg><use href="#i-portal"/></svg></div>
+    <div><div class="b-t">Supplier Portal</div><div class="b-s">External · public</div></div>
+  </div>
+
+  <!-- ══ BACKEND (flagship) ══ -->
+  <div class="box flag" style="left:320px;top:280px;width:270px;height:78px;">
+    <div class="b-ic" style="background:linear-gradient(145deg,#ef7a37,#d9531c);"><svg><use href="#i-code"/></svg></div>
+    <div><div class="b-t">RFP AIQ Backend</div><div class="b-s">FastAPI · Python · port 3001</div></div>
+  </div>
+  <div class="box" style="left:320px;top:388px;width:270px;height:56px;">
+    <div class="b-ic" style="background:linear-gradient(145deg,#9354d6,#7c3aed);"><svg><use href="#i-refresh"/></svg></div>
+    <div><div class="b-t">Background Jobs</div><div class="b-s">email poller · reminders</div></div>
+  </div>
+
+  <!-- ══ GCP SERVICES ══ -->
+  <div class="hex" style="left:667px;top:145px;"><div class="shape" style="background:linear-gradient(145deg,#4285f4,#1a73e8);"><svg><use href="#i-db"/></svg></div><div><div class="nm">Cloud SQL</div><div class="sb">PostgreSQL</div></div></div>
+  <div class="hex" style="left:667px;top:290px;"><div class="shape" style="background:linear-gradient(145deg,#4285f4,#1a73e8);"><svg><use href="#i-storage"/></svg></div><div><div class="nm">Cloud Storage</div><div class="sb">file uploads</div></div></div>
+  <div class="hex" style="left:667px;top:425px;"><div class="shape" style="background:linear-gradient(145deg,#4285f4,#1a73e8);"><svg><use href="#i-llm"/></svg></div><div><div class="nm">Vertex AI</div><div class="sb">Gemini · default</div></div></div>
+  <div class="hex" style="left:877px;top:120px;"><div class="shape" style="background:linear-gradient(145deg,#4285f4,#1a73e8);"><svg><use href="#i-shield"/></svg></div><div><div class="nm">Cloud IAM</div><div class="sb">service accounts</div></div></div>
+  <div class="hex" style="left:877px;top:290px;"><div class="shape" style="background:linear-gradient(145deg,#4285f4,#1a73e8);"><svg><use href="#i-gauge"/></svg></div><div><div class="nm">Cloud Monitoring</div><div class="sb">structlog · OTel</div></div></div>
+
+  <!-- ══ EXTERNAL API ══ -->
+  <div class="hex" style="left:1229px;top:145px;"><div class="shape" style="background:linear-gradient(145deg,#2b90e6,#0078d4);"><svg><use href="#i-mail"/></svg></div><div><div class="nm">Microsoft 365</div><div class="sb">Graph API · MSAL</div></div></div>
+
+  <!-- ══ DEVOPS ══ -->
+  <div class="hex" style="left:377px;top:700px;"><div class="shape" style="background:linear-gradient(145deg,#e0503b,#c53727);"><svg><use href="#i-build"/></svg></div><div><div class="nm">Jenkins</div></div></div>
+  <div class="hex" style="left:547px;top:700px;"><div class="shape" style="background:linear-gradient(145deg,#9354d6,#7b42bc);"><svg><use href="#i-grid"/></svg></div><div><div class="nm">Terraform</div></div></div>
+  <div class="hex" style="left:717px;top:700px;"><div class="shape" style="background:linear-gradient(145deg,#4aa5f0,#2496ed);"><svg><use href="#i-docker"/></svg></div><div><div class="nm">Docker</div></div></div>
+
+</div><!-- /canvas -->
+</div><!-- /scroll -->
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="lg"><span class="sw" style="background:#1a73e8;"></span>GCP managed service</div>
+  <div class="lg"><span class="sw" style="background:#0078d4;"></span>Microsoft 365 (external)</div>
+  <div class="lg"><span class="sw" style="background:#7b42bc;"></span>DevOps / IaC</div>
+  <div class="lg"><svg width="30" height="10"><line class="ln" x1="1" y1="5" x2="24" y2="5" stroke="#8b97a8" stroke-width="2" marker-end="url(#a)"/></svg>Request / data flow</div>
+  <div class="lg"><svg width="30" height="10"><line x1="1" y1="5" x2="24" y2="5" stroke="#7c3aed" stroke-width="2" stroke-dasharray="4 3"/></svg>Identity · monitoring</div>
+</div>
+
+</body>
+</html>
