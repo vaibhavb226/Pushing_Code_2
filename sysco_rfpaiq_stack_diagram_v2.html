@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sysco RFP AIQ — Platform Stack (Security Enhanced)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI', Arial, Helvetica, sans-serif; background:#f0f2f5; color:#1f2937;
+         padding:36px 26px; display:flex; flex-direction:column; align-items:center; -webkit-font-smoothing:antialiased; }
+  .sheet { width:100%; max-width:1160px; }
+
+  .page-title { text-align:center; margin-bottom:24px; }
+  .page-title h1 { font-size:22px; font-weight:800; color:#0f2d4a; letter-spacing:.05em; text-transform:uppercase; }
+  .page-title p { font-size:12px; color:#6b7280; margin-top:4px; letter-spacing:.06em; text-transform:uppercase; }
+
+  .stack { display:flex; flex-direction:column; gap:4px; }
+
+  .arrow-link { display:flex; justify-content:center; padding:2px 0; }
+  .arrow-link svg { width:22px; height:24px; }
+
+  .band { padding:18px 22px; border-radius:7px; }
+  .band-title { text-align:center; font-weight:800; font-size:19px; letter-spacing:.08em; text-transform:uppercase; color:#fff; }
+  .band-title .sfx { display:block; font-size:10px; font-weight:700; letter-spacing:.16em; color:rgba(255,255,255,.75); margin-top:3px; }
+  .row { display:flex; gap:10px; margin-top:15px; flex-wrap:wrap; }
+  .card { flex:1; min-width:120px; border:1.6px solid rgba(255,255,255,.9); border-radius:6px; padding:14px 8px; text-align:center;
+          font-weight:700; font-size:13px; color:#fff; display:flex; align-items:center; justify-content:center; min-height:52px; }
+
+  /* top gray band */
+  .top { background:#e2e5ea; }
+  .top .band-title { color:#3d434d; }
+  .top .card { border:none; background:#3a4049; font-size:15px; }
+
+  /* navy platform bands */
+  .navy { background:#123f6b; }
+
+  /* API Gateway band */
+  .gw-band { background:#1a5276; border:2px dashed rgba(255,255,255,.35); }
+  .gw-band .band-title { font-size:15px; }
+  .gw-card { background:rgba(255,255,255,.13); }
+  .gw-tag { display:inline-block; background:#e74c3c; color:#fff; font-size:9px; font-weight:800;
+            letter-spacing:.1em; text-transform:uppercase; border-radius:3px; padding:2px 5px; margin-top:5px; }
+
+  /* AI band with security callouts */
+  .ai-band { background:#123f6b; position:relative; }
+  .ai-card { position:relative; }
+  .sec-badge { position:absolute; top:-8px; right:-6px; background:#c0392b; color:#fff;
+               font-size:9px; font-weight:800; border-radius:3px; padding:2px 5px; letter-spacing:.06em;
+               white-space:nowrap; text-transform:uppercase; }
+
+  /* security perimeter frame */
+  .secure-frame { position:relative; border:2.5px solid #c05a22; border-radius:16px; padding:20px 18px; margin-top:6px; }
+  .frame-label { position:absolute; top:-13px; left:50%; transform:translateX(-50%);
+                 background:#c05a22; color:#fff; font-size:10px; font-weight:800; letter-spacing:.12em;
+                 text-transform:uppercase; padding:3px 14px; border-radius:20px; white-space:nowrap; }
+
+  /* security grid at bottom */
+  .sec-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:20px; }
+  .sec-card { background:#fff; border-radius:8px; padding:14px 16px; border-left:4px solid #c05a22;
+              box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .sec-card .sc-title { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:#c05a22; margin-bottom:6px;
+                        display:flex; align-items:center; gap:6px; }
+  .sec-card .sc-title svg { width:14px; height:14px; stroke:#c05a22; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+  .sec-card .sc-items { font-size:11.5px; color:#374151; line-height:1.7; font-weight:500; }
+  .sec-card .sc-items span { display:block; }
+  .sc-dot::before { content:"•  "; color:#c05a22; font-weight:900; }
+
+  /* infra bottom row */
+  .infra-row { display:flex; align-items:center; margin-top:16px; flex-wrap:wrap; }
+  .infra-item { flex:1; min-width:80px; display:flex; align-items:center; justify-content:center; text-align:center; color:#fff; padding:4px 6px; }
+  .infra-item .lbl { font-weight:700; font-size:13px; line-height:1.3; }
+  .divider { width:1.5px; align-self:stretch; background:rgba(255,255,255,.4); margin:2px 0; }
+
+  .foot { text-align:center; color:#9aa0a6; font-size:11px; margin-top:16px; letter-spacing:.03em; }
+
+  @media (max-width:720px){
+    .row { flex-wrap:wrap; }
+    .sec-grid { grid-template-columns:1fr; }
+    .infra-row { flex-wrap:wrap; }
+    .infra-item { min-width:45%; }
+    .divider { display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="page-title">
+    <h1>Sysco RFP AIQ — Platform Stack</h1>
+    <p>Security-Enhanced Architecture · GCP Hosted</p>
+  </div>
+
+  <!-- SECURITY PERIMETER — wraps the entire stack -->
+  <div class="secure-frame">
+    <div class="frame-label">🔒 Security Perimeter — Cross-Cutting Controls</div>
+
+    <div class="stack">
+
+      <!-- Applications -->
+      <div class="band top">
+        <div class="band-title">Applications &amp; Services</div>
+        <div class="row">
+          <div class="card">COE Web App</div>
+          <div class="card">Supplier Portal</div>
+        </div>
+      </div>
+
+      <div class="arrow-link"><svg viewBox="0 0 22 24"><line x1="11" y1="1" x2="11" y2="15" stroke="#a7adb5" stroke-width="2"/><path d="M4 12 L11 21 L18 12" fill="none" stroke="#a7adb5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+      <!-- ✦ NEW: API Gateway -->
+      <div class="band gw-band">
+        <div class="band-title">API Gateway &amp; Perimeter Defense
+          <span class="sfx">NEW — Centralized Auth, Rate Limiting &amp; WAF</span>
+        </div>
+        <div class="row">
+          <div class="card gw-card">
+            Cloud Armor / WAF
+            <div class="gw-tag">DDoS + OWASP</div>
+          </div>
+          <div class="card gw-card">
+            API Gateway
+            <div class="gw-tag">Rate Limit · CORS</div>
+          </div>
+          <div class="card gw-card">
+            OAuth2 / Identity Platform
+            <div class="gw-tag">SSO · JWT</div>
+          </div>
+          <div class="card gw-card">
+            VPC Service Controls
+            <div class="gw-tag">Data Exfil Guard</div>
+          </div>
+          <div class="card gw-card">
+            MS Graph Scope Limiter
+            <div class="gw-tag">Token · Min Perms</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-link"><svg viewBox="0 0 22 24"><line x1="11" y1="1" x2="11" y2="15" stroke="#a7adb5" stroke-width="2"/><path d="M4 12 L11 21 L18 12" fill="none" stroke="#a7adb5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+      <!-- Platform -->
+      <div class="band navy">
+        <div class="band-title">RFP AIQ Platform</div>
+        <div class="row">
+          <div class="card">Bid Management</div>
+          <div class="card">Supplier Collaboration</div>
+          <div class="card">Email &amp; Automation</div>
+          <div class="card" style="position:relative;">
+            Document Vault
+            <div class="gw-tag" style="position:absolute;top:-8px;right:-6px;">CMEK Encrypted</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-link"><svg viewBox="0 0 22 24"><line x1="11" y1="1" x2="11" y2="15" stroke="#a7adb5" stroke-width="2"/><path d="M4 12 L11 21 L18 12" fill="none" stroke="#a7adb5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+      <!-- AI/ML — with security badges -->
+      <div class="band ai-band">
+        <div class="band-title">AI / ML Engine
+          <span class="sfx">Prompt Injection Controls · Role-Scoped RAG Context · Output Filtering</span>
+        </div>
+        <div class="row">
+          <div class="card ai-card" style="position:relative;">
+            RFP Parsing
+            <div class="sec-badge">Input Sanitize</div>
+          </div>
+          <div class="card">Pricing AI</div>
+          <div class="card">Evaluation AI</div>
+          <div class="card ai-card" style="position:relative;">
+            Q&amp;A Chat
+            <div class="sec-badge">Output Filter</div>
+          </div>
+          <div class="card ai-card" style="position:relative;">
+            RAG · Embeddings
+            <div class="sec-badge">Role-Scoped</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow-link"><svg viewBox="0 0 22 24"><line x1="11" y1="1" x2="11" y2="15" stroke="#a7adb5" stroke-width="2"/><path d="M4 12 L11 21 L18 12" fill="none" stroke="#a7adb5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+      <!-- Infrastructure -->
+      <div class="band navy">
+        <div class="band-title">Cloud &amp; Infrastructure</div>
+        <div class="infra-row">
+          <div class="infra-item"><span class="lbl">GCP Compute Engine</span></div>
+          <div class="divider"></div>
+          <div class="infra-item"><span class="lbl">Cloud SQL<br/><span style="font-size:10px;opacity:.75;font-weight:600;">Private VPC Only</span></span></div>
+          <div class="divider"></div>
+          <div class="infra-item"><span class="lbl">Cloud Storage<br/><span style="font-size:10px;opacity:.75;font-weight:600;">CMEK + Audit Log</span></span></div>
+          <div class="divider"></div>
+          <div class="infra-item"><span class="lbl">Vertex AI</span></div>
+          <div class="divider"></div>
+          <div class="infra-item"><span class="lbl">MS Graph<br/><span style="font-size:10px;opacity:.75;font-weight:600;">Min OAuth Scopes</span></span></div>
+          <div class="divider"></div>
+          <div class="infra-item"><span class="lbl">Terraform<br/><span style="font-size:10px;opacity:.75;font-weight:600;">OPA Policy-as-Code</span></span></div>
+          <div class="divider"></div>
+          <div class="infra-item"><span class="lbl">Docker · Jenkins CI/CD<br/><span style="font-size:10px;opacity:.75;font-weight:600;">Binary Auth + Scan</span></span></div>
+        </div>
+      </div>
+
+    </div><!-- /stack -->
+  </div><!-- /secure-frame -->
+
+  <!-- EXPANDED SECURITY GRID -->
+  <div class="sec-grid">
+
+    <div class="sec-card">
+      <div class="sc-title">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Identity &amp; Access
+      </div>
+      <div class="sc-items">
+        <span class="sc-dot">Cloud IAM — least-privilege roles</span>
+        <span class="sc-dot">OAuth2 / Identity Platform (SSO)</span>
+        <span class="sc-dot">App-level RBAC (admin / reviewer / supplier)</span>
+        <span class="sc-dot">Workload Identity — no key files</span>
+        <span class="sc-dot">MS Graph min-scope OAuth tokens</span>
+      </div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sc-title">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+        Network &amp; Perimeter
+      </div>
+      <div class="sc-items">
+        <span class="sc-dot">Cloud Armor WAF (OWASP Top 10, DDoS)</span>
+        <span class="sc-dot">API Gateway — rate limiting, CORS</span>
+        <span class="sc-dot">VPC + private subnets for SQL &amp; Storage</span>
+        <span class="sc-dot">VPC Service Controls — no data exfil</span>
+        <span class="sc-dot">Private Google Access for internal services</span>
+      </div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sc-title">
+        <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5.2c0 4.4-3 7.9-7 9.8-4-1.9-7-5.4-7-9.8V6z"/></svg>
+        Data &amp; Secrets
+      </div>
+      <div class="sc-items">
+        <span class="sc-dot">CMEK via Cloud KMS (Document Vault)</span>
+        <span class="sc-dot">TLS 1.2+ enforced everywhere</span>
+        <span class="sc-dot">Secret Manager for all API &amp; DB keys</span>
+        <span class="sc-dot">Separate keys per env (dev/staging/prod)</span>
+        <span class="sc-dot">Data retention + deletion policies</span>
+      </div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sc-title">
+        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        AI / LLM Security
+      </div>
+      <div class="sc-items">
+        <span class="sc-dot">Prompt injection prevention on all inputs</span>
+        <span class="sc-dot">Output filtering — no sensitive data leakage</span>
+        <span class="sc-dot">Role-scoped RAG context per user/supplier</span>
+        <span class="sc-dot">Audit log of all LLM queries (who, what, when)</span>
+        <span class="sc-dot">Vertex AI private endpoint</span>
+      </div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sc-title">
+        <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        Logging &amp; Monitoring
+      </div>
+      <div class="sc-items">
+        <span class="sc-dot">Cloud Audit Logs (Admin + Data Access)</span>
+        <span class="sc-dot">Security Command Center (SCC) alerts</span>
+        <span class="sc-dot">Anomaly alerts: bulk doc downloads, off-hours</span>
+        <span class="sc-dot">Centralized logging + retention policies</span>
+        <span class="sc-dot">Uptime &amp; SLA monitoring</span>
+      </div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sc-title">
+        <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        CI/CD &amp; Supply Chain
+      </div>
+      <div class="sc-items">
+        <span class="sc-dot">Artifact Registry — container vulnerability scan</span>
+        <span class="sc-dot">Binary Authorization — signed images only</span>
+        <span class="sc-dot">Secrets scanning in Jenkins pipelines</span>
+        <span class="sc-dot">Terraform + OPA policy-as-code</span>
+        <span class="sc-dot">No credentials in Git — Secret Manager only</span>
+      </div>
+    </div>
+
+  </div><!-- /sec-grid -->
+
+  <div class="foot" style="margin-top:18px;">Sysco RFP AIQ · AI-Powered Procurement Platform · GCP Hosted · Security-Enhanced v2</div>
+
+</div>
+</body>
+</html>

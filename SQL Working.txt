@@ -1,0 +1,225 @@
+SQL Working 
+
+1: Pre-Execution & Context Gathering 
+
+Health Check: The system lists every table and counts the rows. This flags empty tables up front so the AI does not query them and return a correct-but-empty result.  
+
+Schema & Notes Reading: It reads all columns, primary keys, and foreign keys. It also loads TABLE_NOTES, which are hardcoded business rules (e.g., "bids_old contains historical data, combine it with bids for totals") that column names alone cannot convey.  
+
+Answerability Gate: Before writing any code, the system asks the LLM if the question can even be answered using the available tables. If it is general knowledge, the system refuses the prompt.  
+
+Ambiguity Menu: If a question is ambiguous (e.g., asking for "total bids" when there are both current and historical tables), the system prompts the user to clarify their intent before proceeding. 
+
+Phase 2: Generation 
+
+SQL Writing: The Gemini model is prompted with the strict schema, the allowed tables, the business rules, and the user's question. It is instructed to return the SQL query and a brief explanation in JSON format. 
+
+Phase 3: The Five Safety Layers 
+
+Once the SQL is generated, it must pass five sequential checks. If it fails any, the error is sent back to the AI to try again (up to three times):  
+
+Read-Only Check: Ensures the query only uses SELECT or WITH keywords and contains no write/delete commands.  
+
+Table Existence Check: Verifies that every table referenced in the query actually exists in the database schema.  
+
+Column Existence Check: Ensures no hallucinated columns are used (e.g., verifying alias.column is real).  
+
+EXPLAIN Dry Run: The PostgreSQL database itself plans the query using the EXPLAIN command without actually running it, catching syntax or logical errors.  
+
+Execution: The query is executed in a strictly read-only session that is always rolled back afterward, and a hard row cap (e.g., 500 rows) prevents runaway queries. 
+
+Phase 4: Output 
+
+ 
+
+1.Self-correction loop. If any layer rejects the query, the rejection reason is fed straight back to Gemini as an error message, and it gets up to three attempts to fix it itself. 
+
+ 
+
+2.Output sanity checks. Even after a successful run, the code checks: did this return zero rows? Is a whole column entirely NULL (often a sign of a bad join)? Did it hit the row cap? These get flagged as warnings even on a "successful" query, because a query that runs without error isn't the same as a query that answered the right question. 
+
+ 
+
+ 
+
+RAG Working Steps 
+
+ 
+
+Phase A — Indexing (runs once per document, not per question) 
+
+1. Chunking. Each document is cut into ~350-token pieces. Paragraph breaks are tried first, then sentence boundaries, and only as a last resort a mid-sentence cut. Consecutive chunks overlap by ~60 tokens so no fact gets stranded exactly on a boundary. 
+
+2. Contextual header. Before embedding, a small header (Document: ... | Supplier Name: ... | Category: ...) is prepended to each chunk. The header+text version (embed_input) is what gets embedded and keyword-indexed; the clean text (content) is what's shown to the user later. 
+
+3. Embed and store. embed_input is turned into a 1,536-number vector and written to Postgres via pgvector, alongside an auto-generated full-text search column. Only documents whose content hash actually changed get reprocessed — re-running ingest on unchanged documents is a no-op. 
+
+Note- content_hash (a fingerprint of what the document says right now) and indexed_hash (a fingerprint of what was last embedded). Say you loaded this performance review once — both hashes match, e.g. both equal a1b2c3.... Next week, someone edits a typo in that same document. Its content_hash recalculates to d4e5f6..., but indexed_hash still says a1b2c3.... The ingest() function's query is literally WHERE indexed_hash IS DISTINCT FROM content_hash — so this one document gets picked up for re-chunking and re-embedding, while every other unchanged document in the corpus is skipped entirely. That's what makes re-running ingest on a 1,000-doc 
+
+ 
+
+4. Build the index. HNSW (Hierarchical Navigable Small World) is a graph-shaped shortcut structure built once, ahead of time, over those stored vectors. Think of it like a highway system built between the vectors: instead of visiting every single point, the search hops through a small number of well-placed connections and lands very close to the true nearest neighbors almost immediately — trading a tiny bit of accuracy (it's "approximate" nearest neighbor, not guaranteed-exact) for a massive speed gain. An HNSW index is built on the vector column (after the bulk load, not before — indexing an empty table then inserting is slower than the reverse) so nearest-neighbor lookups stay fast as the corpus grows. 
+
+Phase B — Query time (runs on every question) 
+
+5. Embed the question. The user's question is turned into its own 1,536-number vector, using the same model and dimensions as the stored chunks. 
+
+6. Hybrid search — two searches, one SQL statement: 
+
+Dense retrieval (vector search): compares embeddings for meaning — catches paraphrases like "when do we pay" matching "payment terms." 
+
+Sparse retrieval (keyword search): Postgres's native full-text search — catches exact tokens dense vectors are weak at, like MSC-C-58817 or Net-45. 
+
+Fusion (RRF): merges the two ranked lists by rank position, not raw score — RRF_score=wveck+rankvec+wtxtk+ranktxtRRF\_score = \frac{w_{vec}}{k+rank_{vec}} + \frac{w_{txt}}{k+rank_{txt}} RRF_score=k+rankvec wvec  +k+ranktxt wtxt  , with k=60k=60 k=60. A chunk both searches ranked highly beats one only a single search liked. 
+
+Returns ~20 candidate chunks. 
+
+7. Refusal guardrail. Before spending anything more, check: is nothing close enough by meaning (cosine distance above a floor), and did nothing match by keyword either? If both are true, refuse immediately — "I don't have that in the indexed documents" — rather than pay for reranking and generation on weak evidence. (Requiring both conditions stops a valid exact-ID lookup from being wrongly refused.) 
+
+8. Reranking. The ~20 survivors go to a separate LLM call that scores each 0–10 against the actual question. Only the top 4 (score ≥ 4) survive. This exists because irrelevant passages in the final prompt measurably degrade the answer — precision beats recall at this stage. 
+
+9. Generation. The model answers using only those top 4 chunks, under strict rules: cite every fact with [1], [2], etc.; quote figures exactly as written; never merge distinct values or present an aggregate as one entity's figure; and if the sources genuinely don't contain the answer, say so explicitly rather than guessing. 
+
+10. Return the full result, not just the text. The final output is a dict: the answer, the numbered sources (each with its cosine distance and rerank score), and per-stage timings (embed/search/rerank/generate in milliseconds) — so every answer is auditable and every slow request is diagnosable after the fact. 
+
+ 
+
+Knowledge Graph 
+
+Phase A — Building the graph (done once, or redone when data changes) 
+
+1. Fix the settings. Hop limit for later traversal (2 — how far a query is allowed to walk outward), a hub-size limit (60 — nodes connected to more things than this are never walked through), and a table-size limit (5,000 rows — bigger tables become edges only, not individual nodes). 
+
+2. Create three tables. 
+
+rag_nodes — one row per thing (a supplier, a bid, a certificate). 
+
+rag_edges — one row per connection between two things (SUP-1157 --SUBSIDIARY_OF--> SUP-1156). 
+
+rag_node_mentions — the bridge: one row per "this chunk of text talks about this node." 
+
+3. Build edges from your database's own foreign keys. Every foreign key your database already enforces (bids_old.supplierid → suppliers_old.id) becomes an edge. No model call — this relationship already exists as a real database fact, the code just copies it in. 
+
+4. Extract entities and relationships from document text, using an LLM. For every document, one Gemini call reads its actual prose and returns {"entities": [...], "relations": [...]} — reusing IDs already written in the text (like CERT-TW-SQF2-STK) where they exist, inventing a short consistent ID otherwise, and only stating relationships the text actually says. Thinking is disabled (thinking_budget=0) so the reply can't come back empty. The result is written into that document's metadata column in rag_documents. This is the step that replaces what used to be hand-typed — real documents never arrive with this pre-declared, so something has to read the prose and produce it. 
+
+5. Build edges from that (now LLM-populated) metadata. This step's own code is unchanged: it reads metadata.get("entities") and metadata.get("relations") off rag_documents and turns them into nodes and edges. It has no idea the data came from an LLM one step earlier rather than a human typing it — it just trusts whatever is in that column. 
+
+6. Link the graph to the actual chunks of text. For every chunk, three checks, most reliable first: does the document's metadata declare it mentions this entity; does the chunk's text literally contain the entity's ID; does the chunk's text contain the entity's readable name (skipped for short/generic names, to avoid over-linking). This fills in rag_node_mentions — without it, the graph and the text search have no way to meet. 
+
+Phase B — Answering a question 
+
+7. Run a normal hybrid search first. Same vector + keyword search as the RAG engine, using the question — this finds a starting chunk. 
+
+8. Find which graph nodes that starting chunk mentions. A lookup in the bridge table (rag_node_mentions) turns "this chunk" into "this node" — the entry point into the graph. 
+
+9. Walk outward from that node, 1-2 steps. Grab everything directly connected, then everything connected to those — while refusing to walk through any node connected to more than 60 things, so the walk doesn't spread into the entire graph. 
+
+10. Pull in the text attached to whatever the walk reached. Chunks about closer nodes count for more than chunks about farther ones, and no single document can contribute more than a couple of chunks — so one long document can't eat the whole reading budget. 
+
+11. Pull in the plain relationship facts connecting the nodes the walk reached, as simple stated facts (not prose) to hand the model directly. 
+
+12. Rerank the combined set — chunks found by search and chunks found by the graph walk, scored together, keeping only the best few overall. 
+
+13. Generate the final answer, using both the reranked passages and the explicit relationship facts, with citations, and a rule to mark graph-derived facts as [graph] and make the chain of connections explicit when the answer spans multiple documents. 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Router 
+
+1. Gather context about what's actually available, before asking the model anything. The router looks up: your list of SQL table names, how many documents are indexed (plus a few of their titles), and how big the graph is (number of nodes, edges, and mentions). This isn't guesswork — it's three quick database counts. 
+
+2. Check for "there's only one real option" cases first — skip the LLM call entirely. Before spending any money on a model call, plain code checks a few obvious situations: 
+
+No SQL tables and no documents at all → answer "none," nothing can help. 
+
+No documents indexed → force "sql," because SQL is literally the only engine that has anything behind it. 
+
+No SQL tables and the graph isn't built → force "rag," same reasoning. 
+
+3. If it's genuinely unclear, ask the model. The model is given a prompt containing your table names, your document count and titles, your graph's node/edge counts, and the question — then asked to reply with one of sql, rag, graph, or none, plus a one-sentence reason. 
+
+SQL — when the answer is a number computed from columns 
+
+Trigger: the question needs counting, adding, ranking, comparing, or filtering rows. 
+
+Examples: 
+
+"Which supplier has the highest total bid amount?" → needs SUM() + ORDER BY 
+
+"How many RFPs did we run last year?" → needs COUNT() 
+
+"List all suppliers in the Dairy category" → a filtered list of records 
+
+How to recognize it yourself: if you'd naturally reach for a spreadsheet formula or a GROUP BY to answer it, it's SQL. 
+
+RAG — when the answer is one fact, stated in one document 
+
+Trigger: the question is asking "what does a specific document/policy/clause say." 
+
+Examples: 
+
+"What are Globex Dairy's payment terms?" → one bid document states this directly 
+
+"What temperature must frozen deliveries arrive at?" → one RFP section states this 
+
+"What's the minimum order value for Valle Verde?" → one number, one document 
+
+How to recognize it yourself: if the answer is a sentence or a specific figure that you could point to inside a single document, it's RAG. 
+
+Graph — when the answer requires connecting two or more things together 
+
+Trigger: the question asks about a relationship, a dependency, a consequence, or "everything about X" where X's information is scattered across document types that don't resemble each other. 
+
+Examples: 
+
+"When does Tidewater's SQF certificate expire, and what happens if it lapses?" → expiry date is in one document, the consequence is in a completely different one (a contract clause) 
+
+"Which suppliers are subsidiaries of Tidewater?" → a stated relationship, not a fact any one document states as a standalone sentence 
+
+None — when it's not about your data at all 
+
+Trigger: greetings, general knowledge, chit-chat, or coding/math questions unrelated to your tables or documents. 
+
+Examples: 
+
+"What is the capital of France?" → refused, general knowledge 
+
+ 
+
+Safety nets 
+
+An engine with nothing behind it is never chosen: 
+
+No documents indexed → everything goes to SQL. 
+
+Graph not built → the graph route quietly becomes RAG. 
+
+SQL returns nothing usable → it retries via RAG automatically and tells you. 
+
+The graph finds no entity to start from → it retries via RAG. 
+
+ 
+
+ 
+
+If engine tried, but came back with nothing useful. 
+
+1. SQL fails → automatically retries via RAG. 
+
+2. Graph finds no starting point → automatically retries via RAG. 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 

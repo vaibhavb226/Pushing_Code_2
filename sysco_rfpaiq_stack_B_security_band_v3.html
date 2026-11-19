@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sysco RFP AIQ — Platform Stack (B v3)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI', Arial, Helvetica, sans-serif; background:#ffffff; color:#1f2937;
+         padding:36px 26px; display:flex; flex-direction:column; align-items:center; -webkit-font-smoothing:antialiased; }
+  .sheet { width:100%; max-width:1120px; }
+
+  .head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:20px; }
+  .head .t { font-size:18px; font-weight:800; color:#111827; letter-spacing:.02em; }
+  .head .c { font-size:11px; font-weight:700; letter-spacing:.14em; color:#b0662f; text-transform:uppercase; }
+
+  .stack { display:flex; flex-direction:column; gap:12px; }
+
+  .band { padding:18px 22px; border-radius:7px; }
+  .band-title { text-align:center; font-weight:800; font-size:19px; letter-spacing:.08em; text-transform:uppercase; color:#fff; }
+  .band-title .sfx { display:block; font-size:10px; font-weight:700; letter-spacing:.16em; color:rgba(255,255,255,.75); margin-top:3px; }
+  .row { display:flex; gap:13px; margin-top:15px; }
+  .card { flex:1; border:1.6px solid rgba(255,255,255,.9); border-radius:6px; padding:14px 8px; text-align:center;
+          font-weight:700; font-size:13.5px; color:#fff; display:flex; align-items:center; justify-content:center; min-height:52px; }
+
+  /* top gray band */
+  .top { background:#e2e5ea; }
+  .top .band-title { color:#3d434d; }
+  .top .card { border:none; background:#3a4049; font-size:15px; }
+
+  /* navy platform bands */
+  .navy { background:#123f6b; }
+
+  /* security band (inserted at gateway) */
+  .sec { background:#c05a22; }
+  .sec .band-title svg { width:16px; height:16px; vertical-align:-3px; margin-right:6px; stroke:#fff; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .sec .card { border-color:rgba(255,255,255,.92); font-size:12.5px; }
+  .sec .card span { display:block; font-weight:500; font-size:9.5px; color:rgba(255,255,255,.8); margin-top:2px; }
+
+  /* infra bottom row with icons + dividers */
+  .infra-row { display:flex; align-items:center; margin-top:16px; }
+  .infra-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:#fff; }
+  .infra-item .lbl { font-weight:700; font-size:14px; }
+  .infra-item .ico { width:52px; height:40px; }
+  .infra-item .ico svg { width:100%; height:100%; stroke:#fff; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+  .divider { width:1.5px; align-self:stretch; background:rgba(255,255,255,.4); margin:2px 0; }
+
+  .arrow { display:flex; justify-content:center; }
+  .arrow svg { stroke:#b6bcc4; }
+
+  .foot { text-align:center; color:#9aa0a6; font-size:11px; margin-top:20px; letter-spacing:.03em; }
+
+  @media (max-width:720px){ .row{flex-wrap:wrap;} }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="head">
+    <div class="t">Sysco RFP AIQ — Platform Stack</div>
+    <div class="c">Sysco · Confidential</div>
+  </div>
+
+  <div class="stack">
+
+    <!-- Applications -->
+    <div class="band top">
+      <div class="band-title">Applications &amp; Services</div>
+      <div class="row">
+        <div class="card">COE Web App</div>
+        <div class="card">Supplier Portal</div>
+      </div>
+    </div>
+
+    <!-- SECURITY & ACCESS — inserted at the API gateway (every request passes through) -->
+    <div class="band sec">
+      <div class="band-title">
+        <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5.2c0 4.4-3 7.9-7 9.8-4-1.9-7-5.4-7-9.8V6z"/><path d="M9.4 12l1.8 1.8 3.5-3.9"/></svg>Security &amp; Access
+      </div>
+      <div class="row">
+        <div class="card">API Key Auth</div>
+        <div class="card">CORS Policy</div>
+        <div class="card">OAuth2</div>
+        <div class="card">Cloud IAM</div>
+        <div class="card">Secrets</div>
+      </div>
+    </div>
+
+    <!-- Platform -->
+    <div class="band navy">
+      <div class="band-title">RFP AIQ Platform</div>
+      <div class="row">
+        <div class="card">Bid Management</div>
+        <div class="card">Supplier Collaboration</div>
+        <div class="card">Email &amp; Automation</div>
+        <div class="card">Document Vault</div>
+      </div>
+    </div>
+
+    <!-- AI/ML -->
+    <div class="band navy">
+      <div class="band-title">AI / ML Engine</div>
+      <div class="row">
+        <div class="card">RFP Parsing</div>
+        <div class="card">Pricing AI</div>
+        <div class="card">Evaluation AI</div>
+        <div class="card">Q&amp;A Chat</div>
+        <div class="card">LLM Engine</div>
+        <div class="card">RAG · Embeddings</div>
+      </div>
+    </div>
+
+    <!-- Infrastructure -->
+    <div class="band navy">
+      <div class="band-title">Cloud &amp; Infrastructure</div>
+      <div class="infra-row">
+        <div class="infra-item"><span class="lbl">GCP Compute Engine</span></div>
+        <div class="divider"></div>
+        <div class="infra-item"><span class="ico"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg></span><span class="lbl">Cloud SQL</span></div>
+        <div class="divider"></div>
+        <div class="infra-item"><span class="ico"><svg viewBox="0 0 24 24"><path d="M5.2 7.5h13.6l-1.2 12a1 1 0 0 1-1 .9H7.4a1 1 0 0 1-1-.9z"/><ellipse cx="12" cy="7.2" rx="6.8" ry="2.2"/></svg></span><span class="lbl">Cloud Storage</span></div>
+        <div class="divider"></div>
+        <div class="infra-item"><span class="lbl">Docker · Jenkins CI/CD</span></div>
+      </div>
+    </div>
+
+  </div><!-- /stack -->
+
+  <div class="foot">AI-Powered Procurement Platform · GCP Hosted · Microsoft 365 Graph API · Observability: structlog · OpenTelemetry</div>
+
+</div>
+</body>
+</html>

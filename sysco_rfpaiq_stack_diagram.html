@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sysco RFP AIQ — Technology Stack</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI', system-ui, -apple-system, sans-serif; background:#ffffff; color:#1f2937;
+         padding:40px 24px; display:flex; flex-direction:column; align-items:center; -webkit-font-smoothing:antialiased; }
+  .page { width:100%; max-width:1180px; }
+
+  .eyebrow { text-align:center; margin-bottom:22px; }
+  .eyebrow .t { font-size:19px; font-weight:800; color:#111827; letter-spacing:-.01em; }
+  .eyebrow .s { font-size:12.5px; color:#9aa0a6; margin-top:3px; }
+
+  .wrap { display:flex; gap:16px; align-items:stretch; }
+  .stack { flex:1; min-width:0; display:flex; flex-direction:column; }
+
+  .band { border-radius:15px; padding:20px 26px; }
+  .band-title { text-align:center; font-weight:800; font-size:21px; color:#fff; letter-spacing:-.01em; }
+  .band-sub { text-align:center; font-size:14.5px; margin-top:6px; }
+
+  .cards { display:flex; gap:16px; margin-top:16px; }
+  .card { flex:1; border:1px solid; border-radius:11px; padding:15px 12px 16px; text-align:center; background:rgba(255,255,255,.045); }
+  .card-t { font-weight:700; font-size:16px; }
+  .card-s { font-size:12.5px; margin-top:5px; }
+
+  .arrow { display:flex; justify-content:center; padding:7px 0; }
+
+  .caption { text-align:center; color:#9aa0a6; font-size:14px; margin-top:24px; }
+
+  /* ── layer palette ── */
+  .l-user  { background:#493a8b; }
+  .l-user .band-sub { color:#cfc9ea; }
+  .l-core  { background:#0e5b47; }
+  .l-core .card { border-color:rgba(130,205,175,.34); }
+  .l-core .card-t { color:#ffffff; }
+  .l-core .card-s { color:#8ed6bd; }
+  .l-ai    { background:#6d4906; }
+  .l-ai .band-title { color:#f4cf95; }
+  .l-ai .card { border-color:#b9820c; background:rgba(255,255,255,.03); }
+  .l-ai .card-t { color:#f2a91f; }
+  .l-ai .card-s { color:#e0a744; }
+  .l-data  { background:#12558f; }
+  .l-data .card { border-color:rgba(120,180,230,.42); }
+  .l-data .card-t { color:#ffffff; }
+  .l-data .card-s { color:#aacdec; }
+  .l-infra { background:#3f3e3c; }
+  .l-infra .band-sub { color:#bdbbb6; }
+
+  /* ── cross-cutting security band (vertical) ── */
+  .security { width:216px; flex-shrink:0; border-radius:15px; background:#3a4a63;
+              padding:18px 15px; display:flex; flex-direction:column; }
+  .sec-title { display:flex; align-items:center; justify-content:center; gap:7px; font-weight:800; font-size:15px; color:#fff; }
+  .sec-note { text-align:center; font-size:10.5px; color:#a7b0c1; margin-top:3px; margin-bottom:14px; letter-spacing:.04em; text-transform:uppercase; }
+  .sec-list { display:flex; flex-direction:column; gap:10px; flex:1; }
+  .sec-card { border:1px solid rgba(255,255,255,.16); border-radius:9px; padding:9px 11px; background:rgba(255,255,255,.05); }
+  .sec-t { font-weight:700; font-size:12.5px; color:#fff; }
+  .sec-s { font-size:10.5px; color:#c3cad7; margin-top:2px; }
+
+  @media (max-width:760px) {
+    .wrap { flex-direction:column; }
+    .security { width:100%; }
+    .sec-list { display:grid; grid-template-columns:1fr 1fr; }
+    .cards { flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="eyebrow">
+    <div class="t">Sysco RFP AIQ — Technology Stack</div>
+    <div class="s">AI-Powered Procurement · Sysco × EXL · GCP Hosted</div>
+  </div>
+
+  <div class="wrap">
+
+    <!-- ═══ LAYERED STACK ═══ -->
+    <div class="stack">
+
+      <!-- 1 · User applications -->
+      <div class="band l-user">
+        <div class="band-title">User applications</div>
+        <div class="band-sub">React Web App · Public Supplier Portal · REST API (/api/v1)</div>
+      </div>
+      <div class="arrow"><svg width="20" height="34"><line x1="10" y1="2" x2="10" y2="25" stroke="#9aa0a6" stroke-width="2"/><path d="M5 21 L10 29 L15 21" fill="none" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+      <!-- 2 · RFP AIQ core platform -->
+      <div class="band l-core">
+        <div class="band-title">RFP AIQ — core platform</div>
+        <div class="cards">
+          <div class="card"><div class="card-t">Bid Management</div><div class="card-s">Queue · detail · document vault</div></div>
+          <div class="card"><div class="card-t">AI Features</div><div class="card-s">Parse · price · evaluate · chat</div></div>
+          <div class="card"><div class="card-t">Collaboration &amp; Automation</div><div class="card-s">Email · portal · reminders</div></div>
+        </div>
+      </div>
+      <div class="arrow"><svg width="20" height="34"><line x1="10" y1="2" x2="10" y2="25" stroke="#9aa0a6" stroke-width="2"/><path d="M5 21 L10 29 L15 21" fill="none" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+      <!-- 3 · AI / ML engine -->
+      <div class="band l-ai">
+        <div class="band-title">AI / ML engine</div>
+        <div class="cards">
+          <div class="card"><div class="card-t">LLM (Vertex · Claude · GPT)</div><div class="card-s">Generation · reasoning</div></div>
+          <div class="card"><div class="card-t">RAG pipeline</div><div class="card-s">Retrieval · context</div></div>
+          <div class="card"><div class="card-t">SQL Query Expert</div><div class="card-s">Text-to-SQL answers</div></div>
+        </div>
+      </div>
+      <div class="arrow"><svg width="20" height="34"><line x1="10" y1="2" x2="10" y2="25" stroke="#9aa0a6" stroke-width="2"/><path d="M5 21 L10 29 L15 21" fill="none" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+      <!-- 4 · Data layer -->
+      <div class="band l-data">
+        <div class="band-title">Data layer</div>
+        <div class="cards">
+          <div class="card"><div class="card-t">Working Data</div><div class="card-s">JSON · SQLite · Postgres</div></div>
+          <div class="card"><div class="card-t">Document Store</div><div class="card-s">Uploads · quotes · files</div></div>
+          <div class="card"><div class="card-t">Analytics DB</div><div class="card-s">Cloud SQL (PostgreSQL)</div></div>
+        </div>
+      </div>
+      <div class="arrow"><svg width="20" height="34"><line x1="10" y1="2" x2="10" y2="25" stroke="#9aa0a6" stroke-width="2"/><path d="M5 21 L10 29 L15 21" fill="none" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+      <!-- 5 · Infrastructure -->
+      <div class="band l-infra">
+        <div class="band-title">Infrastructure</div>
+        <div class="band-sub">GCP (Compute Engine · Cloud Storage · Cloud SQL) · Email (Microsoft 365 Graph API) · Deploy (Docker · Jenkins) · Observability (structlog · OpenTelemetry)</div>
+      </div>
+
+    </div><!-- /stack -->
+
+    <!-- ═══ CROSS-CUTTING SECURITY & ACCESS ═══ -->
+    <div class="security">
+      <div class="sec-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5.2c0 4.4-3 7.9-7 9.8-4-1.9-7-5.4-7-9.8V6z"/><path d="M9.4 12l1.8 1.8 3.5-3.9"/></svg>
+        Security &amp; Access
+      </div>
+      <div class="sec-note">Applies to every layer</div>
+      <div class="sec-list">
+        <div class="sec-card"><div class="sec-t">API Key &amp; CORS</div><div class="sec-s">APIKeyMiddleware · allowed origins</div></div>
+        <div class="sec-card"><div class="sec-t">Secrets</div><div class="sec-s">.env · pydantic SecretStr</div></div>
+        <div class="sec-card"><div class="sec-t">Cloud IAM</div><div class="sec-s">GCP service accounts · roles</div></div>
+        <div class="sec-card"><div class="sec-t">OAuth2</div><div class="sec-s">Microsoft Graph · MSAL</div></div>
+        <div class="sec-card"><div class="sec-t">Request Tracing</div><div class="sec-s">Request ID · structlog</div></div>
+      </div>
+    </div>
+
+  </div><!-- /wrap -->
+
+  <div class="caption">Each layer depends on the ones below it · Security &amp; Access applies across all layers</div>
+
+</div>
+
+</body>
+</html>

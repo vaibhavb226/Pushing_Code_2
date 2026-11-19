@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sysco RFP AIQ — Solution Architecture v28</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    background:#e9edf3;
+    padding:20px;
+    display:flex; flex-direction:column; align-items:center;
+    -webkit-font-smoothing:antialiased;
+    color:#1f2a37;
+  }
+  .scroll { width:100%; overflow-x:auto; display:flex; justify-content:center; }
+
+  /* ── Page header ── */
+  .pagehead { width:1300px; display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .brand { display:flex; align-items:center; gap:11px; }
+  .logo { width:30px; height:30px; border-radius:8px; background:linear-gradient(145deg,#ea6a2e,#d9531c);
+          display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:15px;
+          box-shadow:0 4px 12px rgba(217,83,28,.35); }
+  .h-title { font-weight:800; font-size:17px; letter-spacing:-.01em; color:#0f172a; }
+  .h-sub { font-size:10.5px; color:#8a94a4; margin-left:12px; }
+  .confidential { display:flex; align-items:center; gap:7px; padding:6px 12px; border-radius:8px;
+                  background:rgba(217,83,28,.09); border:1px solid rgba(217,83,28,.3); }
+  .confidential span:first-child { width:6px; height:6px; border-radius:50%; background:#d9531c; box-shadow:0 0 0 3px rgba(217,83,28,.18); }
+  .confidential span:last-child { font-size:10px; font-weight:700; letter-spacing:.1em; color:#c2461a; }
+
+  /* ── Canvas ── */
+  .canvas {
+    position:relative; width:1300px; height:912px;
+    background:#f8fafc;
+    background-image:radial-gradient(circle at 1px 1px, rgba(15,23,42,.05) 1px, transparent 0);
+    background-size:24px 24px;
+    border-radius:18px;
+    border:1px solid rgba(15,23,42,.07);
+    box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 14px 46px rgba(15,23,42,.16);
+    overflow:hidden;
+    flex-shrink:0;
+  }
+
+  svg.wires { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+
+  /* ── Layer rail labels (far left) ── */
+  .rail { position:absolute; left:34px; display:flex; align-items:center; gap:8px;
+          transform:rotate(-90deg); transform-origin:left center; z-index:2; }
+  .rail .dot { width:7px; height:7px; border-radius:50%; }
+  .rail span { font-size:9.5px; font-weight:800; letter-spacing:.16em; color:#94a3b8; text-transform:uppercase; white-space:nowrap; }
+
+  /* ── Swimlane containers ── */
+  .lane { position:absolute; border-radius:15px; border:1.4px solid var(--lc); background:var(--lf); z-index:1; }
+  .lane-tab { position:absolute; top:12px; left:16px; display:flex; align-items:center; gap:8px;
+              font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--tc); }
+  .lane-tab .t-badge { width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+                       background:#fff; color:var(--tc); border:1px solid var(--lc); }
+  .lane-tab .t-badge .ic { width:13px; height:13px; }
+  .lane-note { position:absolute; top:13px; right:16px; font-size:9px; font-weight:700; color:var(--tc);
+               background:#fff; border:1px solid var(--lc); border-radius:20px; padding:3px 9px; }
+
+  /* ── Node (standard box) ── */
+  .node { position:absolute; background:#fff; border:1px solid #d7dde6; border-left:3px solid var(--ac);
+          border-radius:11px; box-shadow:0 1px 2px rgba(16,24,40,.06), 0 6px 16px rgba(16,24,40,.05);
+          display:flex; align-items:center; gap:11px; padding:0 14px; z-index:3; }
+  .node-ic { width:36px; height:36px; border-radius:9px; background:color-mix(in srgb, var(--ac) 13%, #fff);
+             color:var(--ac); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .node-t { font-size:12.5px; font-weight:700; color:#1f2a37; line-height:1.2; }
+  .node-s { font-size:9.5px; color:#6b7688; margin-top:2px; line-height:1.25; }
+
+  /* Actor variant — round badge (Lucidchart-style external role) */
+  .actor .node-ic { border-radius:50%; }
+
+  /* ── Icons ── */
+  .ic { width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.7;
+        stroke-linecap:round; stroke-linejoin:round; }
+  .ic.fill { fill:currentColor; stroke:none; }
+
+  /* ── Capability card (inside core) ── */
+  .cap { position:absolute; background:#fff; border:1px solid #d7dde6; border-top:3px solid var(--ac);
+         border-radius:12px; box-shadow:0 2px 8px rgba(16,24,40,.06); padding:12px 13px; z-index:3;
+         display:flex; flex-direction:column; }
+  .cap.hero { border:1.5px solid var(--ac); box-shadow:0 3px 14px color-mix(in srgb, var(--ac) 22%, transparent); }
+  .cap-h { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+  .cap-h .node-ic { width:32px; height:32px; }
+  .cap-t { font-size:12px; font-weight:800; color:#1f2a37; }
+  .cap-tag { font-size:7.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+             color:var(--ac); background:color-mix(in srgb, var(--ac) 12%, #fff);
+             border:1px solid color-mix(in srgb, var(--ac) 35%, #fff); border-radius:20px; padding:2px 7px; margin-left:auto; }
+  .mini { display:flex; align-items:center; gap:8px; padding:5px 0; }
+  .mini + .mini { border-top:1px dashed #e7ebf1; }
+  .mini .ic { width:15px; height:15px; color:var(--ac); flex-shrink:0; }
+  .mini-t { font-size:10px; font-weight:600; color:#334155; }
+  .mini-s { font-size:8.5px; color:#8a94a4; }
+
+  /* ── Gateway strip ── */
+  .gateway { position:absolute; z-index:3; border-radius:10px; padding:8px 14px;
+             background:linear-gradient(180deg,#2f7ada,#1d6fd6); color:#fff;
+             display:flex; align-items:center; gap:10px; box-shadow:0 4px 12px rgba(29,111,214,.28); }
+  .gateway .ic { width:17px; height:17px; color:#fff; }
+  .gateway b { font-size:11px; font-weight:700; }
+  .g-chip { font-size:8.5px; font-weight:600; background:rgba(255,255,255,.18); border-radius:5px; padding:2px 8px; }
+
+  /* ── Sub-node grid (GCP services) ── */
+  .subnode { background:#fff; border:1px solid #dbe2ea; border-radius:8px; padding:7px 8px;
+             display:flex; align-items:center; gap:7px; }
+  .subnode .ic { width:16px; height:16px; color:var(--ac); flex-shrink:0; }
+  .subnode-t { font-size:9.5px; font-weight:700; color:#28303c; line-height:1.15; }
+  .subnode-s { font-size:8px; color:#8a94a4; }
+
+  /* ── Connector labels ── */
+  .wlabel { position:absolute; z-index:4; transform:translate(-50%,-50%);
+            background:#fff; border:1px solid #d7dde6; border-radius:20px; padding:3px 9px;
+            font-size:8.5px; font-weight:700; color:#475569; box-shadow:0 1px 3px rgba(16,24,40,.08);
+            display:flex; align-items:center; gap:5px; white-space:nowrap; }
+  .wlabel .ic { width:11px; height:11px; }
+
+  /* ── Legend ── */
+  .legend { position:absolute; left:0; right:0; bottom:0; height:38px; z-index:3;
+            display:flex; align-items:center; justify-content:center; gap:26px;
+            background:rgba(255,255,255,.72); border-top:1px solid #e2e8f0; backdrop-filter:blur(3px); }
+  .lg { display:flex; align-items:center; gap:7px; font-size:9.5px; font-weight:600; color:#64748b; }
+  .lg .sw { width:18px; height:14px; border-radius:4px; display:flex; align-items:center; justify-content:center; }
+  .lg .ic { width:13px; height:13px; }
+</style>
+</head>
+<body>
+
+<div class="pagehead">
+  <div class="brand">
+    <div class="logo">A</div>
+    <div>
+      <span class="h-title">SYSCO RFP AIQ — SOLUTION ARCHITECTURE</span>
+      <span class="h-sub">AI-Powered Procurement · Sysco × EXL · GCP Hosted · Client Architecture View · July 2026</span>
+    </div>
+  </div>
+  <div class="confidential"><span></span><span>CONFIDENTIAL</span></div>
+</div>
+
+<div class="scroll">
+<div class="canvas">
+
+  <!-- ══════════ ICON LIBRARY ══════════ -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c0-3.7 2.9-6 6.5-6s6.5 2.3 6.5 6"/></symbol>
+      <symbol id="i-supplier" viewBox="0 0 24 24"><path d="M3 21V9l6 3V9l6 3.2V6h5v15z"/><path d="M2 21h20"/><path d="M6.5 16h2M11.5 16h2M16.5 16h2"/></symbol>
+      <symbol id="i-web" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.2"/><path d="M3 9h18"/><circle cx="6" cy="6.5" r=".7" class="fill"/><circle cx="8.3" cy="6.5" r=".7" class="fill"/></symbol>
+      <symbol id="i-portal" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3.2 3.6 3.2 14.4 0 18M12 3c-3.2 3.6-3.2 14.4 0 18"/></symbol>
+      <symbol id="i-bids" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2.2"/><rect x="9" y="2.4" width="6" height="3.2" rx="1"/><path d="M8.5 10.5h7M8.5 14h7M8.5 17.5h4"/></symbol>
+      <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 2.5h7.5L18 7v14.5H6z"/><path d="M13.5 2.5V7H18"/><path d="M9 12h6M9 15.5h6"/></symbol>
+      <symbol id="i-ai" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2.4"/><circle cx="12" cy="12" r="2.4"/><path d="M9.5 3v3.5M14.5 3v3.5M9.5 17.5V21M14.5 17.5V21M3 9.5h3.5M3 14.5h3.5M17.5 9.5H21M17.5 14.5H21"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 4H4a1.5 1.5 0 0 0-1.5 1.5v9A1.5 1.5 0 0 0 4 16h3v4l4.2-4H20a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 20 4z"/><path d="M7 9h10M7 12h6"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 4v16h16"/><rect x="7.5" y="12" width="2.6" height="5"/><rect x="12" y="8" width="2.6" height="9"/><rect x="16.5" y="14" width="2.6" height="3"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.2"/><path d="M3.6 6.5 12 12.8l8.4-6.3"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20.5 11a8.5 8.5 0 1 0-.9 4.2"/><path d="M20.5 4.5V11h-6.5"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18.5 16V10a6.5 6.5 0 1 0-13 0v6l-2 2.5h17z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+      <symbol id="i-llm" viewBox="0 0 24 24"><path d="M11.5 3l1.9 4.9 4.9 1.6-4.9 1.9L11.5 16l-1.9-4.6L4.7 9.5l4.9-1.6z"/><path d="M18 15l.9 2.4 2.4.9-2.4.9L18 21.5l-.9-2.3-2.4-.9 2.4-.9z"/></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10a4.2 4.2 0 0 0 .6-8.35A6.2 6.2 0 0 0 5.9 9.6 3.7 3.7 0 0 0 7 18.5z"/></symbol>
+      <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
+      <symbol id="i-storage" viewBox="0 0 24 24"><path d="M5.2 7.5h13.6l-1.2 12a1 1 0 0 1-1 .9H7.4a1 1 0 0 1-1-.9z"/><ellipse cx="12" cy="7.2" rx="6.8" ry="2.2"/></symbol>
+      <symbol id="i-iam" viewBox="0 0 24 24"><path d="M12 3l7 3v5.2c0 4.4-3 7.9-7 9.8-4-1.9-7-5.4-7-9.8V6z"/><rect x="9.4" y="11.2" width="5.2" height="4.3" rx="1"/><path d="M10.4 11.2v-1.3a1.6 1.6 0 0 1 3.2 0v1.3"/></symbol>
+      <symbol id="i-server" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="1.6"/><rect x="4" y="13" width="16" height="7" rx="1.6"/><circle cx="8" cy="7.5" r=".8" class="fill"/><circle cx="8" cy="16.5" r=".8" class="fill"/></symbol>
+      <symbol id="i-gateway" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="2.2"/><path d="M6.5 12h8"/><path d="M13 9l3 3-3 3"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- ══════════ CONNECTOR WIRES ══════════ -->
+  <svg class="wires">
+    <defs>
+      <marker id="arw" markerWidth="10" markerHeight="8" refX="7.5" refY="4" orient="auto"><path d="M0 0L9 4L0 8z" fill="#8b97a8"/></marker>
+    </defs>
+    <!-- users → experience -->
+    <line x1="465" y1="150" x2="465" y2="192" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <line x1="915" y1="150" x2="915" y2="192" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- experience → core -->
+    <line x1="465" y1="300" x2="465" y2="342" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <line x1="915" y1="300" x2="915" y2="342" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <!-- core → services -->
+    <line x1="270" y1="612" x2="270" y2="654" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <line x1="690" y1="612" x2="690" y2="654" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+    <line x1="1110" y1="612" x2="1110" y2="654" stroke="#8b97a8" stroke-width="2" marker-end="url(#arw)"/>
+  </svg>
+
+  <!-- ══════════ LAYER RAIL LABELS ══════════ -->
+  <div class="rail" style="top:112px;"><span class="dot" style="background:#475569;"></span><span>Users</span></div>
+  <div class="rail" style="top:247px;"><span class="dot" style="background:#4f46e5;"></span><span>Experience</span></div>
+  <div class="rail" style="top:478px;"><span class="dot" style="background:#1d6fd6;"></span><span>Platform</span></div>
+  <div class="rail" style="top:770px;"><span class="dot" style="background:#1a73e8;"></span><span>Cloud&nbsp;·&nbsp;Services</span></div>
+
+  <!-- ══════════ CONNECTOR LABELS ══════════ -->
+  <div class="wlabel" style="left:465px;top:171px;">HTTPS</div>
+  <div class="wlabel" style="left:915px;top:171px;">HTTPS · Public</div>
+  <div class="wlabel" style="left:465px;top:321px;">REST /api</div>
+  <div class="wlabel" style="left:915px;top:321px;">REST /api</div>
+  <div class="wlabel" style="left:270px;top:633px;"><svg class="ic"><use href="#i-llm"/></svg>Vertex AI</div>
+  <div class="wlabel" style="left:690px;top:633px;"><svg class="ic"><use href="#i-db"/></svg>SQL · Files</div>
+  <div class="wlabel" style="left:1110px;top:633px;"><svg class="ic"><use href="#i-mail"/></svg>Graph API</div>
+
+  <!-- ══════════ USERS ══════════ -->
+  <div class="node actor" style="left:350px;top:74px;width:230px;height:76px;--ac:#475569;">
+    <div class="node-ic"><svg class="ic"><use href="#i-user"/></svg></div>
+    <div><div class="node-t">Bid COE Team</div><div class="node-s">Sysco Internal · Procurement staff</div></div>
+  </div>
+  <div class="node actor" style="left:800px;top:74px;width:230px;height:76px;--ac:#0f9d78;">
+    <div class="node-ic"><svg class="ic"><use href="#i-supplier"/></svg></div>
+    <div><div class="node-t">Suppliers</div><div class="node-s">External vendors · No login</div></div>
+  </div>
+
+  <!-- ══════════ EXPERIENCE LANE ══════════ -->
+  <div class="lane" style="left:110px;top:180px;width:1160px;height:132px;--lc:#cdd3ec;--lf:rgba(238,239,251,.5);"></div>
+  <div class="node" style="left:280px;top:210px;width:370px;height:82px;--ac:#4f46e5;">
+    <div class="node-ic"><svg class="ic"><use href="#i-web"/></svg></div>
+    <div><div class="node-t">Web Application</div><div class="node-s">React 18 · Vite · Tailwind · Bid dashboard, detail &amp; AI results</div></div>
+  </div>
+  <div class="node" style="left:730px;top:210px;width:370px;height:82px;--ac:#0f9d78;">
+    <div class="node-ic"><svg class="ic"><use href="#i-portal"/></svg></div>
+    <div><div class="node-t">Public Supplier Portal</div><div class="node-s">Branded quote form · file upload · no authentication</div></div>
+  </div>
+
+  <!-- ══════════ CORE PLATFORM LANE ══════════ -->
+  <div class="lane" style="left:110px;top:344px;width:1160px;height:268px;--lc:#b9d2f2;--lf:rgba(232,241,254,.6);--tc:#1d6fd6;">
+    <div class="lane-tab" style="--lc:#b9d2f2;--tc:#1d6fd6;"><span class="t-badge"><svg class="ic"><use href="#i-ai"/></svg></span>Sysco RFP AIQ Platform</div>
+    <div class="lane-note" style="--lc:#b9d2f2;--tc:#1d6fd6;">FastAPI · Python · Port 3001</div>
+  </div>
+
+  <!-- Gateway strip -->
+  <div class="gateway" style="left:130px;top:378px;width:1120px;">
+    <svg class="ic"><use href="#i-gateway"/></svg>
+    <b>API Gateway</b>
+    <span class="g-chip">Request ID → API Key → CORS</span>
+    <span class="g-chip">/api/* ≡ /api/v1/*</span>
+    <span class="g-chip" style="margin-left:auto;">Provider-agnostic (LLM · Email · DB)</span>
+  </div>
+
+  <!-- Capability cards -->
+  <div class="cap" style="left:130px;top:424px;width:263px;height:176px;--ac:#1d6fd6;">
+    <div class="cap-h"><div class="node-ic"><svg class="ic"><use href="#i-bids"/></svg></div><div class="cap-t">Bid Management</div></div>
+    <div class="mini"><svg class="ic"><use href="#i-bids"/></svg><div><div class="mini-t">Bid Queue &amp; Detail</div><div class="mini-s">Lifecycle · status · filters</div></div></div>
+    <div class="mini"><svg class="ic"><use href="#i-doc"/></svg><div><div class="mini-t">Document Vault</div><div class="mini-s">Central file repository</div></div></div>
+  </div>
+
+  <div class="cap hero" style="left:415px;top:424px;width:263px;height:176px;--ac:#e0662b;">
+    <div class="cap-h"><div class="node-ic"><svg class="ic"><use href="#i-ai"/></svg></div><div class="cap-t">AI Intelligence</div><span class="cap-tag">Core</span></div>
+    <div class="mini"><svg class="ic"><use href="#i-doc"/></svg><div><div class="mini-t">BEX RFP Parser</div><div class="mini-s">Document → line items</div></div></div>
+    <div class="mini"><svg class="ic"><use href="#i-chart"/></svg><div><div class="mini-t">Pricing &amp; Response AI</div><div class="mini-s">Extract · match · score</div></div></div>
+    <div class="mini"><svg class="ic"><use href="#i-chat"/></svg><div><div class="mini-t">Q&amp;A Chat + SQL Search</div><div class="mini-s">Ask data in plain English</div></div></div>
+  </div>
+
+  <div class="cap" style="left:700px;top:424px;width:263px;height:176px;--ac:#0f9d78;">
+    <div class="cap-h"><div class="node-ic"><svg class="ic"><use href="#i-mail"/></svg></div><div class="cap-t">Supplier Collaboration</div></div>
+    <div class="mini"><svg class="ic"><use href="#i-mail"/></svg><div><div class="mini-t">Solicitations &amp; Awards</div><div class="mini-s">Outbound bid requests</div></div></div>
+    <div class="mini"><svg class="ic"><use href="#i-portal"/></svg><div><div class="mini-t">Portal Submissions</div><div class="mini-s">Quote intake &amp; tracking</div></div></div>
+  </div>
+
+  <div class="cap" style="left:985px;top:424px;width:263px;height:176px;--ac:#7c3aed;">
+    <div class="cap-h"><div class="node-ic"><svg class="ic"><use href="#i-refresh"/></svg></div><div class="cap-t">Automation</div></div>
+    <div class="mini"><svg class="ic"><use href="#i-refresh"/></svg><div><div class="mini-t">Email Poller</div><div class="mini-s">Auto-match replies to bids</div></div></div>
+    <div class="mini"><svg class="ic"><use href="#i-bell"/></svg><div><div class="mini-t">Auto-Reminders</div><div class="mini-s">Chase non-responders</div></div></div>
+  </div>
+
+  <!-- ══════════ CLOUD & SERVICES LANE ══════════ -->
+  <div class="lane" style="left:110px;top:656px;width:1160px;height:216px;--lc:#bcd3f7;--lf:rgba(238,244,254,.6);--tc:#1a73e8;">
+    <div class="lane-tab" style="--lc:#bcd3f7;--tc:#1a73e8;"><span class="t-badge"><svg class="ic"><use href="#i-cloud"/></svg></span>Platform &amp; Cloud Services</div>
+    <div class="lane-note" style="--lc:#bcd3f7;--tc:#1a73e8;">Google Cloud Platform</div>
+  </div>
+
+  <!-- AI / LLM -->
+  <div class="cap" style="left:130px;top:694px;width:300px;height:158px;--ac:#e0662b;">
+    <div class="cap-h"><div class="node-ic"><svg class="ic"><use href="#i-llm"/></svg></div><div class="cap-t">AI / LLM</div></div>
+    <div class="mini"><svg class="ic"><use href="#i-llm"/></svg><div><div class="mini-t">Google Vertex AI — Gemini</div><div class="mini-s">Default provider · IAM auth</div></div><span class="cap-tag" style="margin-left:auto;">Default</span></div>
+    <div class="mini"><svg class="ic"><use href="#i-ai"/></svg><div><div class="mini-t">Anthropic Claude · OpenAI</div><div class="mini-s">Swap via config, no code change</div></div></div>
+  </div>
+
+  <!-- GCP (wide) -->
+  <div class="cap" style="left:470px;top:694px;width:520px;height:158px;--ac:#1a73e8;">
+    <div class="cap-h"><div class="node-ic"><svg class="ic"><use href="#i-cloud"/></svg></div><div class="cap-t">GCP Cloud Infrastructure</div><span class="cap-tag">Hosting</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="subnode" style="--ac:#1a73e8;"><svg class="ic"><use href="#i-server"/></svg><div><div class="subnode-t">Compute Engine</div><div class="subnode-s">App host VM</div></div></div>
+      <div class="subnode" style="--ac:#1a73e8;"><svg class="ic"><use href="#i-db"/></svg><div><div class="subnode-t">Cloud SQL</div><div class="subnode-s">Managed PostgreSQL</div></div></div>
+      <div class="subnode" style="--ac:#1a73e8;"><svg class="ic"><use href="#i-storage"/></svg><div><div class="subnode-t">Cloud Storage</div><div class="subnode-s">File &amp; document store</div></div></div>
+      <div class="subnode" style="--ac:#1a73e8;"><svg class="ic"><use href="#i-iam"/></svg><div><div class="subnode-t">Cloud IAM</div><div class="subnode-s">Roles &amp; access control</div></div></div>
+    </div>
+  </div>
+
+  <!-- Microsoft 365 -->
+  <div class="cap" style="left:1030px;top:694px;width:218px;height:158px;--ac:#0f9d78;">
+    <div class="cap-h"><div class="node-ic"><svg class="ic"><use href="#i-mail"/></svg></div><div class="cap-t">Email</div></div>
+    <div class="mini"><svg class="ic"><use href="#i-mail"/></svg><div><div class="mini-t">Microsoft 365</div><div class="mini-s">Exchange · Graph API</div></div></div>
+    <div class="mini"><svg class="ic"><use href="#i-user"/></svg><div><div class="mini-t">COE.BIDS mailbox</div><div class="mini-s">Send · poll · track</div></div></div>
+  </div>
+
+  <!-- ══════════ LEGEND ══════════ -->
+  <div class="legend">
+    <div class="lg"><span class="sw" style="background:#eef1f8;color:#475569;"><svg class="ic"><use href="#i-user"/></svg></span>External actor</div>
+    <div class="lg"><span class="sw" style="background:#fff;border:1px solid #d7dde6;"></span>Application / service</div>
+    <div class="lg"><span class="sw" style="color:#1a73e8;"><svg class="ic"><use href="#i-db"/></svg></span>Data store</div>
+    <div class="lg"><span class="sw" style="color:#1a73e8;"><svg class="ic"><use href="#i-cloud"/></svg></span>Cloud service</div>
+    <div class="lg"><span class="sw" style="background:#fdf0e9;color:#e0662b;"><svg class="ic"><use href="#i-ai"/></svg></span>AI capability</div>
+    <div class="lg"><svg class="ic" style="width:20px;color:#8b97a8;"><use href="#i-gateway"/></svg>Data flow →</div>
+  </div>
+
+</div><!-- /canvas -->
+</div><!-- /scroll -->
+
+</body>
+</html>

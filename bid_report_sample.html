@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bid Pipeline Report — Sysco RFP AIQ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:   #0D2137;
+    --navy2:  #1A3A56;
+    --orange: #E05A2B;
+    --orange-light: #FDF0EB;
+    --green:  #16A34A;
+    --green-bg: #DCFCE7;
+    --amber:  #B45309;
+    --amber-bg: #FEF3C7;
+    --red:    #DC2626;
+    --red-bg: #FEE2E2;
+    --purple: #7C3AED;
+    --purple-bg: #EDE9FE;
+    --teal:   #0D9488;
+    --teal-bg:#CCFBF1;
+    --blue:   #1D4ED8;
+    --blue-bg:#DBEAFE;
+    --slate:  #475569;
+    --muted:  #94A3B8;
+    --border: #E2E8F0;
+    --page-bg:#F1F5F9;
+    --card:   #FFFFFF;
+    --text:   #0F172A;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--page-bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .page { max-width: 1140px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* ── Report Header ── */
+  .report-header { background: var(--navy); color: #fff; margin-bottom: 32px; }
+  .header-inner {
+    max-width: 1140px; margin: 0 auto; padding: 28px 24px 24px;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-logo {
+    width: 44px; height: 44px; background: var(--orange); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
+  }
+  .brand-name { font-family: Georgia, serif; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 4px; }
+  .report-title { font-family: Georgia, serif; font-size: 22px; font-weight: normal; color: #fff; line-height: 1.2; }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+  .header-meta { text-align: right; font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.8; }
+  .header-meta strong { color: rgba(255,255,255,0.85); font-weight: 500; }
+
+  /* ── Export Button ── */
+  .export-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--orange); color: #fff;
+    border: none; border-radius: 6px;
+    padding: 9px 18px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .export-btn:hover { background: #C84E22; }
+  .export-btn:active { transform: scale(0.98); }
+  .export-btn svg { flex-shrink: 0; }
+
+  .header-stripe {
+    height: 4px;
+    background: linear-gradient(90deg, var(--orange) 0%, #F59E0B 40%, #16A34A 70%, #1D4ED8 100%);
+  }
+
+  /* ── Export Modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(13,33,55,0.55); backdrop-filter: blur(4px);
+    z-index: 1000; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 12px; width: 460px; max-width: 95vw;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+    animation: modalIn 0.18s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-header {
+    padding: 22px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-size: 16px; font-weight: 700; color: var(--navy); }
+  .modal-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .modal-close {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: none; background: #F1F5F9; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--slate); transition: background 0.1s;
+  }
+  .modal-close:hover { background: #E2E8F0; }
+  .modal-body { padding: 20px 24px; }
+  .modal-body p { font-size: 13px; color: var(--slate); margin-bottom: 16px; }
+
+  .export-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .export-option {
+    border: 2px solid var(--border); border-radius: 10px;
+    padding: 20px 16px; cursor: pointer; text-align: center;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    background: #fff; font-family: inherit;
+    position: relative; overflow: hidden;
+  }
+  .export-option:hover { background: #F8FAFC; }
+  .export-option:active { transform: scale(0.97); }
+  .export-option.pdf  { --opt-color: #1D4ED8; }
+  .export-option.xlsx { --opt-color: #16A34A; }
+  .export-option:hover { border-color: var(--opt-color); }
+  .opt-icon { font-size: 32px; margin-bottom: 10px; display: block; }
+  .opt-label { font-size: 14px; font-weight: 700; color: var(--text); display: block; margin-bottom: 4px; }
+  .opt-desc  { font-size: 11px; color: var(--muted); display: block; line-height: 1.4; }
+  .opt-badge {
+    position: absolute; top: 10px; right: 10px;
+    font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .pdf  .opt-badge { background: #DBEAFE; color: #1D4ED8; }
+  .xlsx .opt-badge { background: #DCFCE7; color: #16A34A; }
+
+  .modal-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-footer-note { font-size: 11px; color: var(--muted); }
+  .cancel-btn {
+    font-size: 12px; color: var(--slate); border: none;
+    background: none; cursor: pointer; font-family: inherit; padding: 4px 8px;
+  }
+  .cancel-btn:hover { color: var(--text); }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--navy); color: #fff; border-radius: 8px;
+    padding: 10px 20px; font-size: 13px; font-weight: 500;
+    opacity: 0; transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none; z-index: 2000; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Print / PDF styles ── */
+  @media print {
+    .export-btn, .modal-overlay, .toast { display: none !important; }
+    body { background: #fff; }
+    .report-header { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .header-stripe { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card { box-shadow: none; border: 1px solid #ccc !important; break-inside: avoid; }
+    .alert-band { break-inside: avoid; }
+    .kpi-card::before { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .seg-bar-fill, .opco-bar-fill, .resp-bar-fill, .resp-inline-fill, .gauge-bar-fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { max-width: 100%; padding: 0 16px; }
+    .chart-row { break-inside: avoid; }
+    .section { break-inside: avoid; }
+  }
+
+  /* ── Section labels ── */
+  .section { margin-bottom: 32px; }
+  .section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .card-title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); margin-bottom: 14px; }
+
+  /* ── KPI Row ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+  .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 16px 16px; position: relative; overflow: hidden; }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .kpi-card.orange::before { background: var(--orange); }
+  .kpi-card.green::before  { background: var(--green); }
+  .kpi-card.red::before    { background: var(--red); }
+  .kpi-card.amber::before  { background: #F59E0B; }
+  .kpi-card.teal::before   { background: var(--teal); }
+  .kpi-label { font-size: 11px; color: var(--slate); font-weight: 500; margin-bottom: 8px; }
+  .kpi-value { font-size: 32px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; margin-bottom: 6px; }
+  .kpi-card.orange .kpi-value { color: var(--navy); }
+  .kpi-card.green .kpi-value  { color: var(--green); }
+  .kpi-card.red .kpi-value    { color: var(--red); }
+  .kpi-card.amber .kpi-value  { color: var(--amber); }
+  .kpi-card.teal .kpi-value   { color: var(--teal); }
+  .kpi-sub { font-size: 11px; color: var(--muted); }
+
+  /* ── Chart row ── */
+  .chart-row { display: grid; grid-template-columns: 340px 1fr; gap: 16px; margin-bottom: 28px; }
+  .donut-wrap { display: flex; align-items: center; gap: 20px; }
+  .donut-svg { flex-shrink: 0; }
+  .donut-legend { flex: 1; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12.5px; border-bottom: 1px solid #F1F5F9; }
+  .legend-item:last-child { border-bottom: none; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-name { flex: 1; color: var(--slate); }
+  .legend-count { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+
+  .seg-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .seg-row:last-child { margin-bottom: 0; }
+  .seg-label { width: 96px; font-size: 12px; color: var(--slate); text-align: right; flex-shrink: 0; }
+  .seg-bar-bg { flex: 1; height: 22px; background: #F1F5F9; border-radius: 3px; overflow: hidden; }
+  .seg-bar-fill { height: 100%; background: var(--navy2); border-radius: 3px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; color: #fff; font-weight: 600; min-width: 24px; }
+
+  .alert-band { background: #FFF8F6; border: 1px solid #FECACA; border-left: 4px solid var(--red); border-radius: 8px; padding: 16px 20px; margin-bottom: 28px; }
+  .alert-band-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .alert-icon { width: 24px; height: 24px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .alert-title { font-weight: 600; color: var(--red); font-size: 13px; }
+  .alert-sub { font-size: 11px; color: #9CA3AF; margin-left: auto; }
+  .alert-table { width: 100%; border-collapse: collapse; }
+  .alert-table th { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 0 10px 8px 0; border-bottom: 1px solid #FCA5A5; }
+  .alert-table td { padding: 10px 10px 10px 0; border-bottom: 1px solid #FEE2E2; font-size: 12.5px; vertical-align: middle; }
+  .alert-table tr:last-child td { border-bottom: none; }
+  .overdue-badge { display: inline-block; background: var(--red); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; font-variant-numeric: tabular-nums; }
+  .warning-badge { display: inline-block; background: #FEF3C7; color: var(--amber); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; font-variant-numeric: tabular-nums; border: 1px solid #FDE68A; }
+
+  .resp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+  .resp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .resp-row:last-child { margin-bottom: 0; }
+  .resp-name { font-size: 11.5px; color: var(--slate); width: 175px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .resp-bar-bg { flex: 1; height: 14px; background: #F1F5F9; border-radius: 3px; overflow: hidden; }
+  .resp-bar-fill { height: 100%; border-radius: 3px; }
+  .resp-pct { width: 36px; font-size: 11.5px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+
+  .gauge-row { display: flex; align-items: center; gap: 16px; padding: 16px 0; }
+  .gauge-number { font-size: 52px; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; line-height: 1; }
+  .gauge-label { font-size: 13px; color: var(--slate); font-weight: 500; }
+  .gauge-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .gauge-bar-bg { height: 8px; background: #E2E8F0; border-radius: 4px; margin-top: 14px; overflow: hidden; }
+  .gauge-bar-fill { height: 100%; border-radius: 4px; }
+
+  .matrix-wrap { overflow-x: auto; }
+  .matrix-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .matrix-table th { font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); text-align: center; padding: 8px 6px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+  .matrix-table th.bid-col { text-align: left; padding-left: 0; }
+  .matrix-table td { padding: 9px 6px; border-bottom: 1px solid var(--border); text-align: center; vertical-align: middle; }
+  .matrix-table td.bid-col { text-align: left; padding-left: 0; }
+  .matrix-table tr:hover td { background: #F8FAFC; }
+  .matrix-table tr:last-child td { border-bottom: none; }
+  .check { color: var(--green); font-size: 14px; }
+  .bid-name { font-size: 12px; font-weight: 500; color: var(--text); }
+  .bid-id-sm { font-size: 10.5px; color: var(--muted); }
+
+  .bid-table-wrap { overflow-x: auto; }
+  .bid-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .bid-table th { font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 10px 12px; background: #F8FAFC; border-bottom: 2px solid var(--border); white-space: nowrap; }
+  .bid-table td { padding: 12px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .bid-table tr:hover td { background: #F8FAFC; }
+  .bid-table tr:last-child td { border-bottom: none; }
+
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .s-active       { background: var(--green-bg);  color: var(--green);  } .s-active .badge-dot       { background: var(--green);  }
+  .s-solicitation { background: var(--blue-bg);   color: var(--blue);   } .s-solicitation .badge-dot { background: var(--blue);   }
+  .s-working      { background: var(--amber-bg);  color: var(--amber);  } .s-working .badge-dot      { background: #F59E0B; }
+  .s-review       { background: var(--purple-bg); color: var(--purple); } .s-review .badge-dot       { background: var(--purple); }
+  .s-awarded      { background: var(--teal-bg);   color: var(--teal);   } .s-awarded .badge-dot      { background: var(--teal);   }
+  .s-atrisk       { background: var(--red-bg);    color: var(--red);    } .s-atrisk .badge-dot       { background: var(--red);    }
+
+  .ctag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; margin: 1px; white-space: nowrap; }
+  .ctag.sox   { background: #F0FDF4; color: #15803D; border-color: #BBF7D0; }
+  .ctag.pfs   { background: #FDF4FF; color: #7E22CE; border-color: #E9D5FF; }
+  .ctag.halal { background: #FFF7ED; color: #C2410C; border-color: #FED7AA; }
+  .ctag.vegan { background: #F0FDF4; color: #166534; border-color: #BBF7D0; }
+
+  .resp-inline { display: flex; align-items: center; gap: 6px; }
+  .resp-inline-bar { width: 60px; height: 6px; background: #E2E8F0; border-radius: 3px; overflow: hidden; }
+  .resp-inline-fill { height: 100%; border-radius: 3px; }
+  .resp-inline-pct { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 32px; }
+
+  .due-overdue { color: var(--red); font-weight: 600; font-size: 12px; }
+  .due-warning { color: var(--amber); font-weight: 600; font-size: 12px; }
+  .due-ok      { color: var(--slate); font-size: 12px; }
+
+  .opco-grid { display: flex; flex-direction: column; gap: 8px; }
+  .opco-row { display: flex; align-items: center; gap: 10px; }
+  .opco-label { width: 140px; font-size: 11.5px; color: var(--slate); text-align: right; flex-shrink: 0; }
+  .opco-bar-bg { flex: 1; height: 20px; background: #F1F5F9; border-radius: 3px; overflow: hidden; }
+  .opco-bar-fill { height: 100%; background: var(--orange); border-radius: 3px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; color: #fff; font-weight: 600; }
+
+  .report-footer { border-top: 1px solid var(--border); padding-top: 16px; display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Export Report</div>
+        <div class="modal-sub">Sysco Bid Pipeline — July 15, 2026 · 11 bids</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p>Choose your export format. The report includes all KPI data, charts summary, overdue flags, response rates, compliance matrix, and full bid details.</p>
+      <div class="export-options">
+        <button class="export-option pdf" onclick="runExport('pdf')">
+          <span class="opt-badge">Browser print</span>
+          <span class="opt-icon">📄</span>
+          <span class="opt-label">PDF</span>
+          <span class="opt-desc">Full visual report with charts and colour-coded badges</span>
+        </button>
+        <button class="export-option xlsx" onclick="runExport('excel')">
+          <span class="opt-badge">Excel / Sheets</span>
+          <span class="opt-icon">📊</span>
+          <span class="opt-label">Excel</span>
+          <span class="opt-desc">Spreadsheet with all bid data, filterable and sortable</span>
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span class="modal-footer-note">File will be named: Sysco_Bid_Pipeline_Jul2026</span>
+      <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- REPORT HEADER -->
+<div class="report-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-logo">🍽</div>
+      <div>
+        <div class="brand-name">Sysco RFP AIQ</div>
+        <div class="report-title">Bid Pipeline Report</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="export-btn" onclick="openModal()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export Report
+      </button>
+      <div class="header-meta">
+        <div>Generated <strong>July 15, 2026</strong></div>
+        <div>Period <strong>Q3 2026 — Active Pipeline</strong></div>
+        <div>Prepared by <strong>COE.BIDS@sysco.com</strong></div>
+        <div style="margin-top:4px;font-size:11px;">All 11 bids · All segments · All statuses</div>
+      </div>
+    </div>
+  </div>
+  <div class="header-stripe"></div>
+</div>
+
+<div class="page">
+  <!-- KPI CARDS -->
+  <div class="section">
+    <div class="section-label">Pipeline at a Glance</div>
+    <div class="kpi-grid">
+      <div class="kpi-card orange"><div class="kpi-label">Total Active Bids</div><div class="kpi-value">11</div><div class="kpi-sub">Across 7 segments</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Avg. Response Rate</div><div class="kpi-value">67%</div><div class="kpi-sub">8 of 11 bids above 50%</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Overdue Bids</div><div class="kpi-value">3</div><div class="kpi-sub">Action required now</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">At Risk / Due Soon</div><div class="kpi-value">2</div><div class="kpi-sub">Within 5 days</div></div>
+      <div class="kpi-card teal"><div class="kpi-label">Awarded This Period</div><div class="kpi-value">1</div><div class="kpi-sub">St. Jude — BID-502</div></div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="chart-row">
+    <div class="card">
+      <div class="card-title">Status Breakdown</div>
+      <div class="donut-wrap">
+        <svg class="donut-svg" width="170" height="170" viewBox="0 0 200 200" id="donutSvg"></svg>
+        <div class="donut-legend" id="donutLegend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;height:100%;">
+        <div><div class="card-title">Bids by Segment</div><div id="segBars"></div></div>
+        <div><div class="card-title">Workload by OpCo</div><div class="opco-grid" id="opcoBars"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OVERDUE ALERT -->
+  <div class="section">
+    <div class="alert-band">
+      <div class="alert-band-header">
+        <div class="alert-icon">!</div>
+        <div class="alert-title">Bids Requiring Immediate Attention — 5 Flagged</div>
+        <div class="alert-sub">Sorted by urgency</div>
+      </div>
+      <table class="alert-table">
+        <thead><tr><th>Customer / Bid</th><th>Segment</th><th>OpCo</th><th>Status</th><th>Response Rate</th><th>Due / Overdue</th><th>Issue</th></tr></thead>
+        <tbody>
+          <tr><td><div class="bid-name">Darden Restaurants — Olive Garden</div><div class="bid-id-sm">BID-601</div></td><td>Restaurant</td><td>033 · Sysco Atlanta</td><td><span class="badge s-working"><span class="badge-dot"></span>Working File</span></td><td><div class="resp-inline"><div class="resp-inline-bar"><div class="resp-inline-fill" style="width:89%;background:var(--green);"></div></div><span class="resp-inline-pct" style="color:var(--green)">89%</span></div></td><td><span class="overdue-badge">40d overdue</span></td><td style="color:var(--red);font-size:11px;">Most overdue — escalate</td></tr>
+          <tr><td><div class="bid-name">University of Colorado — Dining Svcs</div><div class="bid-id-sm">BID-402</div></td><td>University</td><td>034 · Sysco Denver</td><td><span class="badge s-working"><span class="badge-dot"></span>Working File</span></td><td><div class="resp-inline"><div class="resp-inline-bar"><div class="resp-inline-fill" style="width:89%;background:var(--green);"></div></div><span class="resp-inline-pct" style="color:var(--green)">89%</span></div></td><td><span class="overdue-badge">35d overdue</span></td><td style="color:var(--red);font-size:11px;">Overdue — needs review</td></tr>
+          <tr><td><div class="bid-name">Marriott Mountain Resorts</div><div class="bid-id-sm">BID-701</div></td><td>Lodging</td><td>034 · Sysco Denver</td><td><span class="badge s-solicitation"><span class="badge-dot"></span>Solicitation</span></td><td><div class="resp-inline"><div class="resp-inline-bar"><div class="resp-inline-fill" style="width:36%;background:#F59E0B;"></div></div><span class="resp-inline-pct" style="color:var(--amber)">36%</span></div></td><td><span class="overdue-badge">27d overdue</span></td><td style="color:var(--red);font-size:11px;">Overdue + low responses</td></tr>
+          <tr><td><div class="bid-name">Arapahoe Charter School</div><div class="bid-id-sm">BID-106</div></td><td>K-12</td><td>016 · Sysco Boston</td><td><span class="badge s-solicitation"><span class="badge-dot"></span>Solicitation</span></td><td><div class="resp-inline"><div class="resp-inline-bar"><div class="resp-inline-fill" style="width:100%;background:var(--green);"></div></div><span class="resp-inline-pct" style="color:var(--green)">100%</span></div></td><td><span class="warning-badge">Due today</span></td><td style="color:var(--amber);font-size:11px;">Deadline is today</td></tr>
+          <tr><td><div class="bid-name">Hilton Hotels — Southeast Region</div><div class="bid-id-sm">BID-702</div></td><td>Lodging</td><td>033 · Sysco Atlanta</td><td><span class="badge s-atrisk"><span class="badge-dot"></span>At Risk</span></td><td><div class="resp-inline"><div class="resp-inline-bar"><div class="resp-inline-fill" style="width:54%;background:#F59E0B;"></div></div><span class="resp-inline-pct" style="color:var(--amber)">54%</span></div></td><td><span class="warning-badge">5d remaining</span></td><td style="color:var(--amber);font-size:11px;">At Risk — low responses</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RESPONSE RATES -->
+  <div class="section">
+    <div class="section-label">Supplier Response Rate Analysis</div>
+    <div class="resp-grid">
+      <div class="card">
+        <div class="card-title">Overall Engagement</div>
+        <div class="gauge-row">
+          <div class="gauge-number">67%</div>
+          <div><div class="gauge-label">Average response rate</div><div class="gauge-sub">Across all 11 active bids</div></div>
+        </div>
+        <div class="gauge-bar-bg"><div class="gauge-bar-fill" style="width:67%;background:linear-gradient(90deg,#E05A2B,#16A34A);"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10.5px;color:var(--muted);"><span>0%</span><span>Target: 75%</span><span>100%</span></div>
+        <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="text-align:center;padding:10px;background:#F0FDF4;border-radius:6px;"><div style="font-size:20px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums;">4</div><div style="font-size:10.5px;color:var(--slate);margin-top:2px;">Bids at 100%</div></div>
+          <div style="text-align:center;padding:10px;background:#FEE2E2;border-radius:6px;"><div style="font-size:20px;font-weight:700;color:var(--red);font-variant-numeric:tabular-nums;">2</div><div style="font-size:10.5px;color:var(--slate);margin-top:2px;">Bids at 0%</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Response Rate by Bid — Sorted Lowest First</div>
+        <div id="respBars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLIANCE MATRIX -->
+  <div class="section">
+    <div class="section-label">Compliance Coverage Matrix</div>
+    <div class="card"><div class="matrix-wrap"><table class="matrix-table" id="complianceMatrix"></table></div></div>
+  </div>
+
+  <!-- FULL BID TABLE -->
+  <div class="section">
+    <div class="section-label">Full Bid Detail</div>
+    <div class="card"><div class="bid-table-wrap"><table class="bid-table" id="bidTable"></table></div></div>
+  </div>
+
+  <div class="report-footer">
+    <div>Sysco RFP AIQ · Bid Pipeline Report · Generated July 15, 2026</div>
+    <div>Confidential — Internal Use Only</div>
+  </div>
+</div>
+
+<script>
+const bids = [
+  { id:'BID-106', customer:'Arapahoe Charter School',              segment:'K-12',       opco:'016 · Sysco Boston',      status:'Solicitation', response:100, dueLabel:'Due today',    dueStatus:'critical', compliance:['CN','Buy Am.','PFS'] },
+  { id:'BID-402', customer:'University of Colorado — Dining Svcs', segment:'University', opco:'034 · Sysco Denver',     status:'Working File', response:89,  dueLabel:'35d overdue',  dueStatus:'overdue',  compliance:['Halal','Kosher','Vegan'] },
+  { id:'BID-403', customer:'Ohio State University',                 segment:'University', opco:'019 · Sysco Cincinnati', status:'Active',       response:0,   dueLabel:'Aug 10, 2026', dueStatus:'ok',       compliance:['Halal','Kosher'] },
+  { id:'BID-501', customer:'Denver Health Medical Center',          segment:'Healthcare', opco:'034 · Sysco Denver',     status:'Review',       response:100, dueLabel:'5d remaining', dueStatus:'warning',  compliance:['Halal','Kosher','SOX'] },
+  { id:'BID-502', customer:"St. Jude Children's Research Hosp.",   segment:'Healthcare', opco:'055 · Sysco Memphis',    status:'Awarded',      response:100, dueLabel:'Aug 25, 2026', dueStatus:'ok',       compliance:['SOX'] },
+  { id:'BID-601', customer:'Darden Restaurants — Olive Garden',    segment:'Restaurant', opco:'033 · Sysco Atlanta',    status:'Working File', response:89,  dueLabel:'40d overdue',  dueStatus:'overdue',  compliance:[] },
+  { id:'BID-602', customer:"McDonald's Corp. — Supply Chain",      segment:'Restaurant', opco:'020 · Sysco Chicago',    status:'Active',       response:0,   dueLabel:'Aug 15, 2026', dueStatus:'ok',       compliance:[] },
+  { id:'BID-701', customer:'Marriott Mountain Resorts',            segment:'Lodging',    opco:'034 · Sysco Denver',     status:'Solicitation', response:36,  dueLabel:'27d overdue',  dueStatus:'overdue',  compliance:['Halal','Kosher'] },
+  { id:'BID-702', customer:'Hilton Hotels — Southeast Region',     segment:'Lodging',    opco:'033 · Sysco Atlanta',    status:'At Risk',      response:54,  dueLabel:'Jul 28, 2026', dueStatus:'warning',  compliance:[] },
+  { id:'BID-801', customer:'USDA — National School Lunch Prog.',   segment:'Government', opco:'016 · Sysco Boston',     status:'Review',       response:100, dueLabel:'Sep 5, 2026',  dueStatus:'ok',       compliance:['CN','Buy Am.','PFS'] },
+  { id:'BID-101', customer:'Bethesda Naval Hospital',              segment:'DoD',        opco:'022 · Sysco DC',         status:'Active',       response:72,  dueLabel:'Aug 20, 2026', dueStatus:'ok',       compliance:['SOX','CN'] },
+];
+
+const STATUS_COLORS = { 'Active':'#16A34A','Solicitation':'#1D4ED8','Working File':'#D97706','Review':'#7C3AED','Awarded':'#0D9488','At Risk':'#DC2626' };
+const STATUS_CLASS  = { 'Active':'s-active','Solicitation':'s-solicitation','Working File':'s-working','Review':'s-review','Awarded':'s-awarded','At Risk':'s-atrisk' };
+
+function openModal()  { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function showToast(msg, emoji='✅') {
+  const t = document.getElementById('toast');
+  t.innerHTML = `${emoji} ${msg}`;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+function runExport(format) {
+  closeModal();
+  if (format === 'pdf')   { showToast('Opening print dialog — choose "Save as PDF"', '📄'); setTimeout(() => window.print(), 500); }
+  if (format === 'excel') exportExcel();
+}
+
+function exportExcel() {
+  const tags = ['CN','Buy Am.','PFS','Halal','Kosher','Vegan','SOX'];
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const cell = (v, style='') => `<Cell${style?` ss:StyleID="${style}"`:''}><Data ss:Type="String">${esc(v)}</Data></Cell>`;
+  const numCell = (v, style='') => `<Cell${style?` ss:StyleID="${style}"`:''}><Data ss:Type="Number">${v}</Data></Cell>`;
+  const overdue = bids.filter(b => b.dueStatus === 'overdue').length;
+  const atRisk  = bids.filter(b => b.dueStatus === 'warning' || b.status === 'At Risk').length;
+  const awarded = bids.filter(b => b.status === 'Awarded').length;
+  const avgResp = Math.round(bids.reduce((s,b) => s + b.response, 0) / bids.length);
+  const styles = `
+    <Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="11"/><Interior ss:Color="#0D2137" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center"/></Style>
+    <Style ss:ID="hL"><Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="11"/><Interior ss:Color="#0D2137" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="sub"><Font ss:Color="#64748B" ss:Size="10"/></Style>
+    <Style ss:ID="kpiLbl"><Font ss:Bold="1" ss:Color="#475569" ss:Size="10"/><Interior ss:Color="#F1F5F9" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="kpiVal"><Font ss:Bold="1" ss:Color="#0D2137" ss:Size="20"/><Interior ss:Color="#F1F5F9" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center"/></Style>
+    <Style ss:ID="red"><Font ss:Color="#DC2626" ss:Bold="1"/></Style>
+    <Style ss:ID="amber"><Font ss:Color="#B45309" ss:Bold="1"/></Style>
+    <Style ss:ID="green"><Font ss:Color="#16A34A" ss:Bold="1"/></Style>
+    <Style ss:ID="muted"><Font ss:Color="#94A3B8"/></Style>
+    <Style ss:ID="bold"><Font ss:Bold="1"/></Style>
+    <Style ss:ID="shaded"><Interior ss:Color="#F8FAFC" ss:Pattern="Solid"/></Style>
+    <Style ss:ID="check"><Font ss:Color="#16A34A" ss:Bold="1"/><Alignment ss:Horizontal="Center"/></Style>
+    <Style ss:ID="dash"><Font ss:Color="#E2E8F0"/><Alignment ss:Horizontal="Center"/></Style>`;
+  const sheet1 = `<Worksheet ss:Name="Summary"><Table ss:DefaultColumnWidth="120"><Column ss:Width="200"/><Column ss:Width="140"/>
+    <Row ss:Height="30"><Cell ss:MergeAcross="4"><Data ss:Type="String">Sysco RFP AIQ — Bid Pipeline Report</Data></Cell></Row>
+    <Row><Cell ss:MergeAcross="4" ss:StyleID="sub"><Data ss:Type="String">Generated: July 15, 2026  |  Period: Q3 2026  |  11 bids</Data></Cell></Row>
+    <Row/>
+    <Row>${cell('Total Bids','kpiLbl')}${cell('Avg Response','kpiLbl')}${cell('Overdue','kpiLbl')}${cell('At Risk / Due Soon','kpiLbl')}${cell('Awarded','kpiLbl')}</Row>
+    <Row>${numCell(bids.length,'kpiVal')}${cell(avgResp+'%','kpiVal')}${numCell(overdue,'kpiVal')}${numCell(atRisk,'kpiVal')}${numCell(awarded,'kpiVal')}</Row>
+    <Row/><Row><Cell ss:StyleID="bold"><Data ss:Type="String">Status Distribution</Data></Cell></Row>
+    ${Object.entries(bids.reduce((a,b)=>{a[b.status]=(a[b.status]||0)+1;return a},{})).sort((a,b)=>b[1]-a[1]).map(([s,c])=>`<Row>${cell(s)}${numCell(c)}</Row>`).join('')}
+    <Row/><Row><Cell ss:StyleID="bold"><Data ss:Type="String">Bids by Segment</Data></Cell></Row>
+    ${Object.entries(bids.reduce((a,b)=>{a[b.segment]=(a[b.segment]||0)+1;return a},{})).sort((a,b)=>b[1]-a[1]).map(([s,c])=>`<Row>${cell(s)}${numCell(c)}</Row>`).join('')}
+  </Table></Worksheet>`;
+  const sheet2 = `<Worksheet ss:Name="All Bids"><Table>
+    <Column ss:Width="220"/><Column ss:Width="80"/><Column ss:Width="100"/><Column ss:Width="160"/><Column ss:Width="110"/><Column ss:Width="80"/><Column ss:Width="110"/><Column ss:Width="200"/>
+    <Row>${['Customer','Bid ID','Segment','OpCo','Status','Response %','Internal Due','Compliance'].map(h=>cell(h,'h')).join('')}</Row>
+    ${bids.map((b,i)=>`<Row ss:StyleID="${i%2===1?'shaded':''}">${cell(b.customer,'bold')}${cell(b.id,'muted')}${cell(b.segment)}${cell(b.opco)}${cell(b.status,b.status==='At Risk'?'red':b.status==='Awarded'?'green':'')}${numCell(b.response,b.response===100?'green':b.response<50?'red':'')}${cell(b.dueLabel,b.dueStatus==='overdue'?'red':b.dueStatus==='warning'?'amber':'')}${cell(b.compliance.join(', ')||'None')}</Row>`).join('')}
+  </Table></Worksheet>`;
+  const sheet3 = `<Worksheet ss:Name="Overdue and At Risk"><Table>
+    <Column ss:Width="220"/><Column ss:Width="80"/><Column ss:Width="110"/><Column ss:Width="160"/><Column ss:Width="80"/><Column ss:Width="110"/>
+    <Row>${['Customer','Bid ID','Status','OpCo','Response %','Due / Overdue'].map(h=>cell(h,'h')).join('')}</Row>
+    ${bids.filter(b=>b.dueStatus!=='ok').map(b=>`<Row>${cell(b.customer,'bold')}${cell(b.id,'muted')}${cell(b.status,b.status==='At Risk'?'red':'')}${cell(b.opco)}${numCell(b.response)}${cell(b.dueLabel,b.dueStatus==='overdue'?'red':'amber')}</Row>`).join('')}
+  </Table></Worksheet>`;
+  const sheet4 = `<Worksheet ss:Name="Compliance Matrix"><Table>
+    <Column ss:Width="220"/>${tags.map(()=>'<Column ss:Width="80"/>').join('')}
+    <Row>${cell('Customer','hL')}${tags.map(t=>cell(t,'h')).join('')}</Row>
+    ${bids.map((b,i)=>`<Row ss:StyleID="${i%2===1?'shaded':''}">${cell(b.customer,'bold')}${tags.map(t=>b.compliance.includes(t)?cell('✓','check'):cell('—','dash')).join('')}</Row>`).join('')}
+  </Table></Worksheet>`;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles>${styles}</Styles>${sheet1}${sheet2}${sheet3}${sheet4}</Workbook>`;
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'Sysco_Bid_Pipeline_Jul2026.xls';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('Excel file downloaded — 4 sheets included', '📊');
+}
+
+function drawDonut() {
+  const counts = {};
+  bids.forEach(b => counts[b.status] = (counts[b.status]||0)+1);
+  const order = ['Active','Solicitation','Working File','Review','Awarded','At Risk'];
+  const total = bids.length;
+  const cx=100, cy=100, ro=88, ri=54;
+  let angle = -Math.PI/2, paths = '';
+  order.forEach(s => {
+    if (!counts[s]) return;
+    const slice = (counts[s]/total)*Math.PI*2, end = angle+slice, large = slice>Math.PI?1:0;
+    const x1=cx+ro*Math.cos(angle),y1=cy+ro*Math.sin(angle),x2=cx+ro*Math.cos(end),y2=cy+ro*Math.sin(end);
+    const x3=cx+ri*Math.cos(end),y3=cy+ri*Math.sin(end),x4=cx+ri*Math.cos(angle),y4=cy+ri*Math.sin(angle);
+    paths += `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)} A${ro} ${ro} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} L${x3.toFixed(1)} ${y3.toFixed(1)} A${ri} ${ri} 0 ${large} 0 ${x4.toFixed(1)} ${y4.toFixed(1)} Z" fill="${STATUS_COLORS[s]}" stroke="white" stroke-width="2"/>`;
+    angle = end;
+  });
+  paths += `<text x="100" y="96" text-anchor="middle" font-size="24" font-weight="700" fill="#0F172A" font-family="system-ui">${total}</text>`;
+  paths += `<text x="100" y="113" text-anchor="middle" font-size="11" fill="#94A3B8" font-family="system-ui">total bids</text>`;
+  document.getElementById('donutSvg').innerHTML = paths;
+  document.getElementById('donutLegend').innerHTML = order.filter(s=>counts[s]).map(s=>
+    `<div class="legend-item"><div class="legend-dot" style="background:${STATUS_COLORS[s]}"></div><div class="legend-name">${s}</div><div class="legend-count">${counts[s]}</div></div>`
+  ).join('');
+}
+
+function drawSegBars() {
+  const counts = {};
+  bids.forEach(b => counts[b.segment]=(counts[b.segment]||0)+1);
+  const order = ['Healthcare','University','Restaurant','Lodging','Government','K-12','DoD'];
+  const max = Math.max(...Object.values(counts));
+  document.getElementById('segBars').innerHTML = order.filter(s=>counts[s]).map(s=>
+    `<div class="seg-row"><div class="seg-label">${s}</div><div class="seg-bar-bg"><div class="seg-bar-fill" style="width:${Math.round(counts[s]/max*100)}%">${counts[s]}</div></div></div>`
+  ).join('');
+}
+
+function drawOpcoBars() {
+  const counts = {};
+  bids.forEach(b => { const k=b.opco.split('·')[1].trim(); counts[k]=(counts[k]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const max = sorted[0][1];
+  document.getElementById('opcoBars').innerHTML = sorted.map(([name,count])=>
+    `<div class="opco-row"><div class="opco-label">${name}</div><div class="opco-bar-bg"><div class="opco-bar-fill" style="width:${Math.round(count/max*100)}%">${count}</div></div></div>`
+  ).join('');
+}
+
+function drawRespBars() {
+  const sorted = [...bids].sort((a,b)=>a.response-b.response);
+  const barColor = r => r===0?'#E2E8F0':r<50?'#EF4444':r<75?'#F59E0B':'#16A34A';
+  const pctColor = r => r===0?'#94A3B8':r<50?'#DC2626':r<75?'#D97706':'#16A34A';
+  document.getElementById('respBars').innerHTML = sorted.map(b=>
+    `<div class="resp-row"><div class="resp-name" title="${b.customer}">${b.customer}</div><div class="resp-bar-bg"><div class="resp-bar-fill" style="width:${b.response}%;background:${barColor(b.response)};"></div></div><div class="resp-pct" style="color:${pctColor(b.response)}">${b.response}%</div></div>`
+  ).join('');
+}
+
+function drawComplianceMatrix() {
+  const tags = ['CN','Buy Am.','PFS','Halal','Kosher','Vegan','SOX'];
+  let html = `<thead><tr><th class="bid-col">Customer / Bid</th>${tags.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>`;
+  bids.forEach(b => {
+    html += `<tr><td class="bid-col"><div class="bid-name">${b.customer}</div><div class="bid-id-sm">${b.id}</div></td>`;
+    tags.forEach(t => { html += `<td>${b.compliance.includes(t)?'<span class="check">✓</span>':'<span style="color:#E2E8F0">—</span>'}</td>`; });
+    html += '</tr>';
+  });
+  document.getElementById('complianceMatrix').innerHTML = html + '</tbody>';
+}
+
+function drawBidTable() {
+  const barColor = r => r===0?'#E2E8F0':r<50?'#EF4444':r<75?'#F59E0B':'#16A34A';
+  const pctColor = r => r===0?'#94A3B8':r<50?'#DC2626':r<75?'#D97706':'#16A34A';
+  const dueClass = {overdue:'due-overdue',warning:'due-warning',critical:'due-overdue',ok:'due-ok'};
+  const tagClass = {SOX:'sox',PFS:'pfs',Halal:'halal',Kosher:'halal',Vegan:'vegan'};
+  let html = `<thead><tr><th>Customer</th><th>Bid ID</th><th>Segment</th><th>OpCo</th><th>Status</th><th>Response</th><th>Internal Due</th><th>Compliance</th></tr></thead><tbody>`;
+  bids.forEach(b => {
+    const tags = b.compliance.map(t=>`<span class="ctag ${tagClass[t]||''}">${t}</span>`).join('');
+    html += `<tr>
+      <td style="font-weight:500">${b.customer}</td>
+      <td style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">${b.id}</td>
+      <td style="font-size:12px">${b.segment}</td>
+      <td style="font-size:11.5px;color:var(--slate)">${b.opco}</td>
+      <td><span class="badge ${STATUS_CLASS[b.status]}"><span class="badge-dot"></span>${b.status}</span></td>
+      <td><div class="resp-inline"><div class="resp-inline-bar"><div class="resp-inline-fill" style="width:${b.response}%;background:${barColor(b.response)}"></div></div><span class="resp-inline-pct" style="color:${pctColor(b.response)}">${b.response}%</span></div></td>
+      <td><span class="${dueClass[b.dueStatus]}">${b.dueLabel}</span></td>
+      <td>${tags||'<span style="color:var(--muted);font-size:11px">None</span>'}</td>
+    </tr>`;
+  });
+  document.getElementById('bidTable').innerHTML = html + '</tbody>';
+}
+
+drawDonut(); drawSegBars(); drawOpcoBars(); drawRespBars(); drawComplianceMatrix(); drawBidTable();
+</script>
+</body>
+</html>
